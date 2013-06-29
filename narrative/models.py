@@ -1,3 +1,4 @@
+import json
 import uuid
 
 from django.db import models
@@ -35,16 +36,16 @@ class Event(models.Model):
     event_name = models.CharField(max_length=64)
 
     # Target of the event; ie, what database did the connection involve
-    event_operand = models.CharField(max_length=64, null=True, blank=True)
+    event_operand = models.CharField(max_length=64, default=False, blank=True)
 
     # Additional information about the event_operand; ie, what error happened
-    event_operand_detail = models.CharField(max_length=64, null=True, blank=True)
+    event_operand_detail = models.CharField(max_length=64, null=False, blank=True)
 
     # Event status
-    status = models.IntegerField(max_length=16, choices=EVENT_STATUS_TYPES)
+    status = models.IntegerField(choices=EVENT_STATUS_TYPES)
 
     # An ID to tie particular events together
-    case_id = models.CharField(max_length=36)
+    case_id = models.CharField(max_length=36, null=False, blank=True)
 
     def save(self, *args, **kwargs):
         if None == self.case_id:
@@ -61,3 +62,30 @@ def log_event(status_name, origin, event_name, event_operand=None, case_id=None)
     evt.save()
 
     return evt
+
+
+class Solution(models.Model):
+    # Which assertion generated this Solution
+    generating_assertion_name = models.CharField(max_length=64)
+
+    # What was the name of the diagnostic method that generated this solution?
+    diagnostic_case_name = models.CharField(max_length=64)
+
+    # Description of the problem this solution addresses
+    problem_description = models.CharField(max_length=128)
+
+    # The steps (stored as json) for this solution
+    plan_json = models.TextField()
+
+    # A 'case_id' for linking events and other pieces of information
+    # together
+    case_id = models.CharField(max_length=36)
+
+    @property
+    def plan(self):
+        if not hasattr(self, '_plan'):
+            self._plan = json.loads(self.plan_json)
+        return self._plan
+
+    def save(self, *args, **kwargs):
+        self.plan_json = json.dumps(self._plan)
