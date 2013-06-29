@@ -37,6 +37,9 @@ class Event(models.Model):
     # Target of the event; ie, what database did the connection involve
     event_operand = models.CharField(max_length=64, null=True, blank=True)
 
+    # Additional information about the event_operand; ie, what error happened
+    event_operand_detail = models.CharField(max_length=64, null=True, blank=True)
+
     # Event status
     status = models.IntegerField(max_length=16, choices=EVENT_STATUS_TYPES)
 
