@@ -6,7 +6,7 @@ from django.db import models
 EVENT_STATUS_TYPES = (
     (0, 'Success'),
     (1, 'Failed'),
-    (4, 'Unknown'),
+    (2, 'Unknown'),
 )
 
 
