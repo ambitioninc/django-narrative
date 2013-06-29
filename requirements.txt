@@ -1,0 +1,9 @@
+south==0.7.6
+django==1.4.3
+django-nose
+pep8
+psycopg2==2.4.5
+pyflakes
+pytz==2012h
+
+git+git://github.com/toastdriven/django-tastypie.git@504a48722eff1bef6df90a296daa2d1f1d557b1c
