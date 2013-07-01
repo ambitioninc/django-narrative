@@ -20,9 +20,8 @@ def blast_email(subject, message_txt, message_html, recipients):
 class Assertion(object):
     __metaclass__ = abc.ABCMeta
 
-    @abc.abstractproperty
-    def display_name(self):
-        pass
+    def __init__(self, assertion_meta):
+        self.assertion_meta = assertion_meta
 
     @abc.abstractmethod
     def check(self):
@@ -61,6 +60,32 @@ class Assertion(object):
             self.execute_solution(solutions[0])
 
             return True
+
+    def post_recovery_cleanup(self):
+        """
+        Perform any cleanup actions needed after
+        this assertion begins passing again.
+        """
+        pass
+
+    def check_and_diagnose(self):
+        """
+        Check and diagnose this assertion.
+        """
+        if self.check():
+            # Everything is currently okay
+            if not self.assertion_meta.satisfied_last_check:
+                # Do any clean up in case it was recently been fixed.
+                self.post_recovery_cleanup()
+
+                self.assertion_meta.satisfied_last_check = True
+                self.assertion_meta.save()
+        else:
+            # Something's wrong, fix it
+            self.assertion_meta.satisfied_last_check = False
+            self.assertion_meta.save()
+
+            self.diagnose()
 
     @property
     def diagnostic_cases(self):
@@ -116,10 +141,10 @@ class Assertion(object):
 
     def do_defer_multiple_solutions_to_admins(self, solutions):
         subject = 'Impasse: "{0}" has Multiple solutions proposed'.format(
-            self.display_name)
+            self.assertion_meta.display_name)
 
         message = 'Assertion: {0} ({1}) has {2} proposed solutions'.format(
-            self.display_name, self.__class__.__name__, len(solutions))
+            self.assertion_meta.display_name, self.__class__.__name__, len(solutions))
 
         hints = map(str, solutions)
 

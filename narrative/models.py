@@ -89,3 +89,41 @@ class Solution(models.Model):
 
     def save(self, *args, **kwargs):
         self.plan_json = json.dumps(self._plan)
+
+
+class AssertionMeta(models.Model):
+    """
+    Used for storing meta information about a specific assertion.
+    """
+    # Display name for humans
+    display_name = models.CharField(max_length=64, unique=True)
+
+    # Python import path to the Assertion class
+    assertion_load_path = models.CharField(max_length=64, unique=True)
+
+    # Determines if this assertion should ever be checked
+    enabled = models.BooleanField(default=False)
+
+    # Remember if the assertion was satisfied the last time check was called
+    satisfied_last_check = models.BooleanField(default=True)
+
+    def load_assertion_class(self):
+        """
+        Imports and returns the Assertion module.
+        """
+        assertion_path = '.'.join(self.assertion_load_path.split('.')[:-1])
+        assertion_class_name = self.assertion_load_path.split('.')[-1]
+        assertion_file_name = self.assertion_load_path.split('.')[-2]
+
+        assertion_module = __import__(assertion_path, globals(), locals(), [assertion_file_name])
+        if not assertion_module or not hasattr(assertion_module, assertion_class_name):
+            return None
+
+        loaded_assertion_class = getattr(assertion_module, assertion_class_name)
+        if not loaded_assertion_class:
+            return None
+
+        return loaded_assertion_class(self)
+
+    def __unicode__(self):
+        return u'{0}::{1}'.format(self.display_name, self.assertion_load_path)
