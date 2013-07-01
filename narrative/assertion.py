@@ -75,7 +75,7 @@ class Assertion(object):
         """
         Check and diagnose this assertion.
         """
-        resolved_issue_status_type = IssueStatusType.status_by_name('Resolved')
+        resolved_issue_status_type = IssueStatusType.Resolved
 
         # Everything is currently okay
         unresolved_issue_queryset = Issue.objects.filter(

@@ -12,10 +12,6 @@ class StatusType(object):
     types = []
 
     @classmethod
-    def status_by_name(cls, name):
-        return find_tuple(cls.types, name, 1)[0]
-
-    @classmethod
     def status_by_id(cls, id_):
         return find_tuple(cls.types, id_, 0)[1]
 
@@ -85,7 +81,7 @@ class Event(models.Model):
 def log_event(status_name, origin, event_name, event_operand=None, Issue_id=None):
     evt = Event(
         origin=origin, event_name=event_name, event_operand=event_operand,
-        status=EventStatusType.get_by_name(status_name), Issue_id=Issue_id)
+        status=EventStatusType.status_by_name(status_name), Issue_id=Issue_id)
 
     evt.save()
 

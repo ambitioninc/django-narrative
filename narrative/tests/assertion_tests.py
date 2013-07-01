@@ -174,7 +174,7 @@ class AssertionTests(TestCase):
 
         open_Issue_count = Issue.objects.filter(
             failed_assertion=self.assertion.assertion_meta,
-            status=IssueStatusType.status_by_name('Open')).count()
+            status=IssueStatusType.Open).count()
 
         self.assertEqual(
             Issue.objects.all().count(),
@@ -206,7 +206,7 @@ class AssertionTests(TestCase):
         self.check_return_value = True
         self.post_recovery_cleanup_called = False
 
-        test_Issue = Issue.objects.get(failed_assertion=self.assertion_meta, status=IssueStatusType.status_by_name('Open'))
+        test_Issue = Issue.objects.get(failed_assertion=self.assertion_meta, status=IssueStatusType.Open)
 
         self.assertion.check_and_diagnose()
 
@@ -215,7 +215,7 @@ class AssertionTests(TestCase):
 
         self.assertEqual(
             test_Issue.status,
-            IssueStatusType.status_by_name('Resolved'),
+            IssueStatusType.Resolved,
             'Issue should have been resolved')
 
         self.assertTrue(
