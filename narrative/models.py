@@ -4,25 +4,53 @@ import uuid
 from django.db import models
 
 
-EVENT_STATUS_TYPES = (
-    (0, 'Success'),
-    (1, 'Failed'),
-    (2, 'Unknown'),
-)
+def find_tuple(tuple_list, key, which):
+    return filter(lambda tple: tple[which] == key, tuple_list)[0]
 
 
-def get_event_status_by_name(event_status_name):
-    try:
-        return filter(lambda evt_type: event_status_name == evt_type[1], EVENT_STATUS_TYPES)[0][0]
-    except:
-        return None
+class StatusType(object):
+    types = []
+
+    @classmethod
+    def status_by_name(cls, name):
+        return find_tuple(cls.types, name, 1)[0]
+
+    @classmethod
+    def status_by_id(cls, id_):
+        return find_tuple(cls.types, id_, 0)[1]
 
 
-def get_event_status_by_number(event_status_number):
-    try:
-        return filter(lambda evt_type: event_status_number == evt_type[0], EVENT_STATUS_TYPES)[0][1]
-    except:
-        return None
+class EventStatusType(StatusType):
+    Success = 0
+    Failed = 1
+
+    types = (
+        (Success, 'Success'),
+        (Failed, 'Failed'),
+    )
+
+
+class IssueStatusType(StatusType):
+    # An open problem; we've not tried to fix it yet
+    Open = 0
+
+    # We've applied a solution are waiting to see if it
+    # fixes things.
+    SolutionApplied = 1
+
+    # At an impasse; don't know how to proceed, so we've
+    # contacted some humans to take a lok
+    Impasse = 2
+
+    # The issue is fixed and the Issue has been closed
+    Resolved = 3
+
+    types = (
+        (Open, 'Open'),
+        (SolutionApplied, 'Solution Applied'),
+        (Impasse, 'Impasse'),
+        (Resolved, 'Resolved'),
+    )
 
 
 class Event(models.Model):
@@ -42,22 +70,22 @@ class Event(models.Model):
     event_operand_detail = models.CharField(max_length=64, null=False, blank=True)
 
     # Event status
-    status = models.IntegerField(choices=EVENT_STATUS_TYPES)
+    status = models.IntegerField(choices=EventStatusType.types)
 
     # An ID to tie particular events together
-    case_id = models.CharField(max_length=36, null=False, blank=True)
+    Issue_id = models.CharField(max_length=36, null=False, blank=True)
 
     def save(self, *args, **kwargs):
-        if None == self.case_id:
-            self.case_id = str(uuid.uuid4())
+        if None == self.Issue_id:
+            self.Issue_id = str(uuid.uuid4())
 
         super(Event, self).save(*kwargs, **kwargs)
 
 
-def log_event(status_name, origin, event_name, event_operand=None, case_id=None):
+def log_event(status_name, origin, event_name, event_operand=None, Issue_id=None):
     evt = Event(
         origin=origin, event_name=event_name, event_operand=event_operand,
-        status=get_event_status_by_name(status_name), case_id=case_id)
+        status=EventStatusType.get_by_name(status_name), Issue_id=Issue_id)
 
     evt.save()
 
@@ -65,11 +93,10 @@ def log_event(status_name, origin, event_name, event_operand=None, case_id=None)
 
 
 class Solution(models.Model):
-    # Which assertion generated this Solution
-    generating_assertion_name = models.CharField(max_length=64)
+    Issue = models.ForeignKey('Issue')
 
     # What was the name of the diagnostic method that generated this solution?
-    diagnostic_case_name = models.CharField(max_length=64)
+    diagnostic_Issue_name = models.CharField(max_length=64)
 
     # Description of the problem this solution addresses
     problem_description = models.CharField(max_length=128)
@@ -77,9 +104,8 @@ class Solution(models.Model):
     # The steps (stored as json) for this solution
     plan_json = models.TextField()
 
-    # A 'case_id' for linking events and other pieces of information
-    # together
-    case_id = models.CharField(max_length=36)
+    # Time in which the solution was enacted
+    enacted = models.DateTimeField(null=True, blank=True)
 
     @property
     def plan(self):
@@ -104,9 +130,6 @@ class AssertionMeta(models.Model):
     # Determines if this assertion should ever be checked
     enabled = models.BooleanField(default=False)
 
-    # Remember if the assertion was satisfied the last time check was called
-    satisfied_last_check = models.BooleanField(default=True)
-
     def load_assertion_class(self):
         """
         Imports and returns the Assertion module.
@@ -127,3 +150,22 @@ class AssertionMeta(models.Model):
 
     def __unicode__(self):
         return u'{0}::{1}'.format(self.display_name, self.assertion_load_path)
+
+
+class Issue(models.Model):
+    # Which failing assertion generated this Issue
+    failed_assertion = models.ForeignKey(AssertionMeta)
+
+    # Status can be open, resolved, etc
+    status = models.IntegerField(choices=IssueStatusType.types, default=IssueStatusType.Open)
+
+    created_timestamp = models.DateTimeField(auto_now_add=True)
+    resolved_timestamp = models.DateTimeField(null=True, blank=True)
+
+
+class IssueComment(models.Model):
+    """
+    Used to store machine-readable notes about the issue.
+    """
+    issue = models.ForeignKey(Issue)
+    comment = models.CharField(max_length=64)

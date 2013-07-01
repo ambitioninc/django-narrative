@@ -6,7 +6,7 @@ from django.core import mail
 from django.test import TestCase
 
 from ..assertion import Assertion
-from ..models import Solution, AssertionMeta
+from ..models import Solution, AssertionMeta, Issue, IssueStatusType
 
 
 class AssertionTests(TestCase):
@@ -61,8 +61,8 @@ class AssertionTests(TestCase):
             def do_email(self_, *args, **kwargs):
                 self.email_called = True
 
-        self.assertion_meta = AssertionMeta(
-            display_name='Mock assertion', assertion_load_path='foo.bar', enabled=True, satisfied_last_check=False)
+        self.assertion_meta = AssertionMeta.objects.create(
+            display_name='Mock assertion', assertion_load_path='foo.bar', enabled=True)
 
         self.assertion = TestAssertion(self.assertion_meta)
 
@@ -96,7 +96,7 @@ class AssertionTests(TestCase):
         self.assertTrue(self.defer_to_admins_called, 'Verifying the admins were notified of an invalid solution')
 
     def test_diagnose(self):
-        # Test that if no diagnostic case returns a solution, none are executed, and
+        # Test that if no diagnostic Issue returns a solution, none are executed, and
         #   the admins are notified.
         self.mock_solution_1 = None
         self.mock_solution_2 = None
@@ -106,7 +106,7 @@ class AssertionTests(TestCase):
         self.assertFalse(self.execute_solution_called, 'execute_solution should not have been called')
         self.assertTrue(self.defer_to_admins_called, 'Admins should have been notified')
 
-        # Test that if only one diagnostic case returns a solution, it is executed
+        # Test that if only one diagnostic Issue returns a solution, it is executed
         self.mock_solution_1 = self.valid_solution
         self.mock_solution_2 = None
 
@@ -114,7 +114,7 @@ class AssertionTests(TestCase):
 
         self.assertTrue(self.execute_solution_called, 'execute_solution should not have been called')
 
-        # Test that if multiple diagnostic cases return solutions, none are executed, but a conflict is
+        # Test that if multiple diagnostic Issues return solutions, none are executed, but a conflict is
         #   created and the admins are notified.
         self.execute_solution_called = False
 
@@ -146,45 +146,78 @@ class AssertionTests(TestCase):
     def test_check_and_diagnose(self):
         """
         Verifies that the check_and_diagnosis method appropriately
-        updates the satisfied_last_check field on the AssertionMeta.
+        creates and resolves Issue objects.
         """
-        # Verify that a successful assertion updates satisfied_last_chedk
-        self.assertion_meta.satisfied_last_check = True
+        # Verify that a successful assertion does not create a new Issue
         self.check_return_value = True
         self.post_recovery_cleanup_called = False
 
+        Issue_count = Issue.objects.all().count()
+
         self.assertion.check_and_diagnose()
 
-        self.assertTrue(
-            self.assertion_meta.satisfied_last_check,
-            'satisfied_last_check should now be true')
+        self.assertEqual(
+            Issue.objects.all().count(),
+            Issue_count,
+            'A new Issue should not have been created')
         self.assertFalse(
             self.post_recovery_cleanup_called,
             'post_recovery_clean_up should not have been called')
 
-        # Verify that a failed assertion updates satisfied_last_check
+        # Verify that a failed assertion creates a new Issue
         self.check_return_value = False
         self.post_recovery_cleanup_called = False
 
+        Issue_count = Issue.objects.all().count()
+
         self.assertion.check_and_diagnose()
 
-        self.assertFalse(
-            self.assertion_meta.satisfied_last_check,
-            'satisfied_last_check should now be false')
+        open_Issue_count = Issue.objects.filter(
+            failed_assertion=self.assertion.assertion_meta,
+            status=IssueStatusType.status_by_name('Open')).count()
+
+        self.assertEqual(
+            Issue.objects.all().count(),
+            Issue_count + 1,
+            'A new Issue should have been created')
+        self.assertEqual(
+            open_Issue_count,
+            1,
+            'There should be one open Issue for this assertion')
         self.assertFalse(
             self.post_recovery_cleanup_called,
             'post_recovery_clean_up should not have been called')
 
-        # Verify that a successful assertion, following a failed one, updates
-        # the satisfied_last_check field and calls post_recovery_cleanup
-        self.check_return_value = True
-        self.post_recovery_cleanup_called = False
+        # Verify that a failed assertion does not create a new Issue if one already exist
+        Issue_count = Issue.objects.all().count()
 
         self.assertion.check_and_diagnose()
 
-        self.assertTrue(
-            self.assertion_meta.satisfied_last_check,
-            'satisfied_last_check should now be false')
+        self.assertEqual(
+            Issue.objects.all().count(),
+            Issue_count,
+            'A duplicate Issue should not have been created')
+        self.assertFalse(
+            self.post_recovery_cleanup_called,
+            'post_recovery_clean_up should not have been called')
+
+        # Verify that a successful assertion, following a failed one, marks
+        # any open Issues as resolved.
+        self.check_return_value = True
+        self.post_recovery_cleanup_called = False
+
+        test_Issue = Issue.objects.get(failed_assertion=self.assertion_meta, status=IssueStatusType.status_by_name('Open'))
+
+        self.assertion.check_and_diagnose()
+
+        # Reload the previously open test Issue
+        test_Issue = Issue.objects.get(id=test_Issue.id)
+
+        self.assertEqual(
+            test_Issue.status,
+            IssueStatusType.status_by_name('Resolved'),
+            'Issue should have been resolved')
+
         self.assertTrue(
             self.post_recovery_cleanup_called,
             'post_recovery_clean_up should have been called')
@@ -202,7 +235,7 @@ class DoTests(TestCase):
                 return False
 
         self.assertion_meta = AssertionMeta(
-            display_name='Test Assertion', assertion_load_path='foo.bar', enabled=True, satisfied_last_check=False)
+            display_name='Test Assertion', assertion_load_path='foo.bar', enabled=True)
 
         self.assertion = TestAssertion(self.assertion_meta)
 

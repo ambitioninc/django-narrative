@@ -4,6 +4,8 @@ from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.mail import EmailMultiAlternatives
 
+from .models import Issue, IssueStatusType
+
 
 ### misc utility methods ###
 def blast_email(subject, message_txt, message_html, recipients):
@@ -22,6 +24,7 @@ class Assertion(object):
 
     def __init__(self, assertion_meta):
         self.assertion_meta = assertion_meta
+        self.current_issue = None
 
     @abc.abstractmethod
     def check(self):
@@ -68,24 +71,40 @@ class Assertion(object):
         """
         pass
 
-    def check_and_diagnose(self):
+    def check_and_diagnose(self, *args, **kwargs):
         """
         Check and diagnose this assertion.
         """
-        if self.check():
-            # Everything is currently okay
-            if not self.assertion_meta.satisfied_last_check:
-                # Do any clean up in case it was recently been fixed.
+        resolved_issue_status_type = IssueStatusType.status_by_name('Resolved')
+
+        # Everything is currently okay
+        unresolved_issue_queryset = Issue.objects.filter(
+            failed_assertion=self.assertion_meta).exclude(
+                status=resolved_issue_status_type)
+
+        if self.check(*args, **kwargs):
+            if unresolved_issue_queryset.exists():
+                # This assertion just started passing.
+                # Close any open issues and do any needed clean up.
+                unresolved_issue_queryset.update(status=resolved_issue_status_type)
+
+                self.current_issue = None
+
                 self.post_recovery_cleanup()
-
-                self.assertion_meta.satisfied_last_check = True
-                self.assertion_meta.save()
         else:
-            # Something's wrong, fix it
-            self.assertion_meta.satisfied_last_check = False
-            self.assertion_meta.save()
+            # Something's wrong
+            if unresolved_issue_queryset.exists():
+                # Issue alredy exists
+                if not self.current_issue is None:
+                    # This object doesn't yet have a reference to the existing issue, so grab it from the db
+                    self.current_issue = unresolved_issue_queryset[0]
+            else:
+                # No issue yet exists; create one and save a reference to it
+                self.current_issue = Issue(failed_assertion=self.assertion_meta)
+                self.current_issue.save()
 
-            self.diagnose()
+            # Try to fix the issue
+            self.diagnose(*args, **kwargs)
 
     @property
     def diagnostic_cases(self):
