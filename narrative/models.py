@@ -19,10 +19,12 @@ class StatusType(object):
 class EventStatusType(StatusType):
     Success = 0
     Failed = 1
+    InProgress = 2
 
     types = (
         (Success, 'Success'),
         (Failed, 'Failed'),
+        (InProgress, 'InProgress'),
     )
 
 
@@ -60,28 +62,32 @@ class Event(models.Model):
     event_name = models.CharField(max_length=64)
 
     # Target of the event; ie, what database did the connection involve
-    event_operand = models.CharField(max_length=64, default=False, blank=True)
+    event_operand = models.CharField(max_length=64, null=True, blank=True)
 
     # Additional information about the event_operand; ie, what error happened
-    event_operand_detail = models.CharField(max_length=64, null=False, blank=True)
+    event_operand_detail = models.CharField(max_length=64, null=True, blank=True)
 
     # Event status
-    status = models.IntegerField(choices=EventStatusType.types)
+    status = models.IntegerField(choices=EventStatusType.types, default=EventStatusType.Success)
 
     # An ID to tie particular events together
-    Issue_id = models.CharField(max_length=36, null=False, blank=True)
+    thread_id = models.CharField(max_length=36, null=True, blank=True)
 
     def save(self, *args, **kwargs):
-        if None == self.Issue_id:
-            self.Issue_id = str(uuid.uuid4())
+        if None == self.thread_id:
+            self.thread_id = str(uuid.uuid4())
 
-        super(Event, self).save(*kwargs, **kwargs)
+        super(Event, self).save(*args, **kwargs)
+
+    def __unicode__(self):
+        return u'origin:{0} event_name:{1} event_operand:{2} event_operand_detail:{3}'.format(
+            self.origin, self.event_name, self.event_operand, self.event_operand_detail)
 
 
-def log_event(status_name, origin, event_name, event_operand=None, Issue_id=None):
+def log_event(status_name, origin, event_name, event_operand=None, thread_id=None):
     evt = Event(
         origin=origin, event_name=event_name, event_operand=event_operand,
-        status=EventStatusType.status_by_name(status_name), Issue_id=Issue_id)
+        status=EventStatusType.status_by_name(status_name), thread_id=thread_id)
 
     evt.save()
 

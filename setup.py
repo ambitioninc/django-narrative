@@ -5,6 +5,7 @@ setup(
     version='0.1',
     packages=[
         'narrative',
+        'narrative.migrations',
     ],
     url='https://github.com/',
     description='Django narrative',
