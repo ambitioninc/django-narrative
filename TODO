@@ -1,0 +1,8 @@
+TODO
+
+Add support for saving Solutions in the database when executing them.
+
+Add support for saving Solutions in the database and creating a
+    conflict object for when multiple solutions are encountered.
+
+ACCOMPLISHED
