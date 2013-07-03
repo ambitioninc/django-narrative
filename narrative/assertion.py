@@ -1,10 +1,11 @@
 import abc
+import copy
 
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.mail import EmailMultiAlternatives
 
-from .models import Issue, IssueStatusType
+from .models import Issue, ModelIssue, IssueStatusType
 
 
 ### misc utility methods ###
@@ -20,6 +21,13 @@ def blast_email(subject, message_txt, message_html, recipients):
 
 
 class Assertion(object):
+    """
+    The assertion class is used for making
+    assertions about properties of the system.
+    If an assertion is violated, it attempts
+    to fix the problem by calling any provided
+    diagnostic methods.
+    """
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, assertion_meta):
@@ -71,37 +79,39 @@ class Assertion(object):
         """
         pass
 
+    def build_unresolved_issue_queryset(self, *args, **kwargs):
+        return Issue.objects.filter(
+            failed_assertion=self.assertion_meta).exclude(status=IssueStatusType.Resolved)
+
+    def create_issue(self, *args, **kwargs):
+        return Issue.objects.create(
+            failed_assertion=self.assertion_meta)
+
     def check_and_diagnose(self, *args, **kwargs):
         """
-        Check and diagnose this assertion.
+        Check and diagnose this assertion for these parameters.
         """
-        resolved_issue_status_type = IssueStatusType.Resolved
-
-        # Everything is currently okay
-        unresolved_issue_queryset = Issue.objects.filter(
-            failed_assertion=self.assertion_meta).exclude(
-                status=resolved_issue_status_type)
+        unresolved_issue_queryset = self.build_unresolved_issue_queryset(
+            *args, **kwargs)
 
         if self.check(*args, **kwargs):
+            # Everything is currently okay
             if unresolved_issue_queryset.exists():
                 # This assertion just started passing.
                 # Close any open issues and do any needed clean up.
-                unresolved_issue_queryset.update(status=resolved_issue_status_type)
+                unresolved_issue_queryset.update(status=IssueStatusType.Resolved)
 
-                self.current_issue = None
-
-                self.post_recovery_cleanup()
+                self.post_recovery_cleanup(*args, **kwargs)
         else:
             # Something's wrong
             if unresolved_issue_queryset.exists():
                 # Issue alredy exists
-                if not self.current_issue is None:
-                    # This object doesn't yet have a reference to the existing issue, so grab it from the db
-                    self.current_issue = unresolved_issue_queryset[0]
+                current_issue = unresolved_issue_queryset[0]
             else:
-                # No issue yet exists; create one and save a reference to it
-                self.current_issue = Issue(failed_assertion=self.assertion_meta)
-                self.current_issue.save()
+                # No issue yet exists; create one
+                current_issue = self.create_issue(*args, **kwargs)
+
+            kwargs['current_issue'] = current_issue
 
             # Try to fix the issue
             self.diagnose(*args, **kwargs)
@@ -171,3 +181,65 @@ class Assertion(object):
 
     def do_email(self, address, subject, message_txt, message_html):
         blast_email(subject, message_txt, message_html, [address])
+
+
+class ModelAssertion(Assertion):
+    """
+    ModelAssertion is a class for making assertions about
+    a particular set of models.
+    """
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self, *args, **kwargs):
+        super(ModelAssertion, self).__init__(*args, **kwargs)
+
+    @abc.abstractproperty
+    def queryset(self):
+        """
+        Return the queryset of records to check.
+        """
+        pass
+
+    @abc.abstractmethod
+    def check_record(self, record):
+        pass
+
+    def check(self, *args, **kwargs):
+        return self.check_record(kwargs.pop('record'))
+
+    def build_unresolved_issue_queryset(self, *args, **kwargs):
+        """
+        We override this to query for Model Issues instead of
+        just Issues like the base Assertion class.
+        """
+        record = kwargs.pop('record')
+
+        return ModelIssue.objects.filter(
+            failed_assertion=self.assertion_meta,
+            model_type__model=record.__class__.__name__.lower(),
+            model_id=record.id).exclude(status=IssueStatusType.Resolved)
+
+    def create_issue(self, *args, **kwargs):
+        """
+        We override this to create Model Issues instead of
+        just Issues like the base Assertion class.
+        """
+        record = kwargs.pop('record')
+
+        return ModelIssue.objects.create(
+            failed_assertion=self.assertion_meta,
+            model=record)
+
+    def check_and_diagnose(self, *args, **kwargs):
+        """
+        ModelAssertion is kind of funny; all of the logic of
+        the base Assertion class needs to be ran, but for a particular
+        record.  So that's exactly what we do.
+        """
+        for record in self.queryset:
+            # For each record
+            args_copy = copy.copy(args)
+            kwargs_copy = copy.copy(kwargs)
+            kwargs_copy['record'] = record
+
+            super(ModelAssertion, self).check_and_diagnose(*args_copy, **kwargs_copy)

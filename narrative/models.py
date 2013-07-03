@@ -1,6 +1,8 @@
 import json
 import uuid
 
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes import generic
 from django.db import models
 
 
@@ -155,6 +157,10 @@ class AssertionMeta(models.Model):
 
 
 class Issue(models.Model):
+    """
+    Assertions can find problems in the system; these
+    problems are represented using issues.
+    """
     # Which failing assertion generated this Issue
     failed_assertion = models.ForeignKey(AssertionMeta)
 
@@ -165,9 +171,11 @@ class Issue(models.Model):
     resolved_timestamp = models.DateTimeField(null=True, blank=True)
 
 
-class IssueComment(models.Model):
+class ModelIssue(Issue):
     """
-    Used to store machine-readable notes about the issue.
+    Model assertions may find issues with particular models.
+    This is used to track such an issue.
     """
-    issue = models.ForeignKey(Issue)
-    comment = models.CharField(max_length=64)
+    model_type = models.ForeignKey(ContentType)
+    model_id = models.PositiveIntegerField()
+    model = generic.GenericForeignKey('model_type', 'model_id')
