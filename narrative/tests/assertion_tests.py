@@ -68,14 +68,14 @@ class AssertionTests(TestCase):
 
         # Some solutions
         self.valid_solution = Solution(plan_json=json.dumps([
-            ('email', ['josh.marlow@akimbo.io', 'fake subject', 'fake message'], {}),
-            ('defer_to_admins', ['copacetic'], {'hints': ['it is all good']}),
+            ('email', {'adddress': 'josh.marlow@akimbo.io', 'subject': 'fake subject', 'message': 'fake message'}),
+            ('defer_to_admins', {'subject': 'copacetic', 'hints': ['it is all good']}),
         ]))
         self.valid_solution_2 = Solution(plan_json=json.dumps([
-            ('email', ['wesley.kendall@akimbo.io', 'POW', 'fake message'], {}),
+            ('email', {'address': 'wesley.kendall@akimbo.io', 'subject': 'POW', 'message': 'fake message'}),
         ]))
         self.in_valid_solution = Solution(plan_json=json.dumps([
-            ('format', ['C'], {}),
+            ('format', {'drive': 'C'}),
         ]))
 
     def test_get_diagnostic_cases(self):
@@ -137,11 +137,8 @@ class AssertionTests(TestCase):
 
         # Verify that the args and kwargs were passed into the steps appropriately
         self.assertEqual(
-            self.deferred_args, (u'copacetic',),
-            'Verifying that the appropriate args were used in executing the step')
-        self.assertEqual(
-            self.deferred_kwargs, {u'hints': [u'it is all good']},
-            'Verifying that the appropriate kwarg were used in executing the step')
+            self.deferred_kwargs, {'subject': 'copacetic', 'hints': ['it is all good']},
+            'Verifying that the appropriate kwargs were used in executing the step')
 
     def test_check_and_diagnose(self):
         """

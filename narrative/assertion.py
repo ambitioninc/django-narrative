@@ -143,7 +143,7 @@ class Assertion(object):
         was generated.
         """
         for step in solution.plan:
-            action, args, kwargs = step
+            action, kwargs = step
 
             if not hasattr(self, self.get_action_handler(action)):
                 self.do_defer_to_admins('Invalid solution: {0}'.format(str(solution)))
@@ -158,9 +158,9 @@ class Assertion(object):
         """
         if self.validate_solution(solution):
             for step in solution.plan:
-                action, args, kwargs = step
+                action, kwargs = step
 
-                getattr(self, self.get_action_handler(action))(*args, **kwargs)
+                getattr(self, self.get_action_handler(action))(**kwargs)
 
     ### do_* methods for executing particular operations such as notifying individuals ###
     def do_defer_to_admins(self, subject, message, message_html=None, hints=[]):
