@@ -96,7 +96,7 @@ class AssertionTests(TestCase):
         self.assertTrue(self.defer_to_admins_called, 'Verifying the admins were notified of an invalid solution')
 
     def test_diagnose(self):
-        # Test that if no diagnostic Issue returns a solution, none are executed, and
+        # Test that if no diagnostic case returns a solution, none are executed, and
         #   the admins are notified.
         self.mock_solution_1 = None
         self.mock_solution_2 = None
@@ -106,7 +106,7 @@ class AssertionTests(TestCase):
         self.assertFalse(self.execute_solution_called, 'execute_solution should not have been called')
         self.assertTrue(self.defer_to_admins_called, 'Admins should have been notified')
 
-        # Test that if only one diagnostic Issue returns a solution, it is executed
+        # Test that if only one diagnostic case returns a solution, it is executed
         self.mock_solution_1 = self.valid_solution
         self.mock_solution_2 = None
 
@@ -114,7 +114,7 @@ class AssertionTests(TestCase):
 
         self.assertTrue(self.execute_solution_called, 'execute_solution should not have been called')
 
-        # Test that if multiple diagnostic Issues return solutions, none are executed, but a conflict is
+        # Test that if multiple diagnostic case return solutions, none are executed, but a conflict is
         #   created and the admins are notified.
         self.execute_solution_called = False
 

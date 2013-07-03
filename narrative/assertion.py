@@ -58,7 +58,10 @@ class Assertion(object):
 
         if len(solutions) == 0:
             # No solution found, notify the admins
-            self.do_defer_to_admins('No solutions found')
+            message = 'Failed Assertion: {0} ({1}) has no proposed solutions'.format(
+                self.assertion_meta.display_name, self.__class__.__name__)
+
+            self.do_defer_to_admins('Failed assertion; No solutions found', message)
 
             return False
         elif len(solutions) > 1:
