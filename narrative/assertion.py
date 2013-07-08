@@ -71,7 +71,10 @@ class Assertion(object):
             return False
         else:
             # Found a solution; apply it
-            self.execute_solution(solutions[0])
+            solution = solutions[0]
+            solution.save_plan()
+            solution.save()
+            self.execute_solution(solution)
 
             return True
 

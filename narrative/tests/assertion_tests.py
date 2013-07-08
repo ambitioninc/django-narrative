@@ -66,17 +66,24 @@ class AssertionTests(TestCase):
 
         self.assertion = TestAssertion(self.assertion_meta)
 
+        self.issue = Issue(failed_assertion=self.assertion_meta)
+        self.issue.save()
+
         # Some solutions
-        self.valid_solution = Solution(plan_json=json.dumps([
-            ('email', {'adddress': 'josh.marlow@akimbo.io', 'subject': 'fake subject', 'message': 'fake message'}),
-            ('defer_to_admins', {'subject': 'copacetic', 'hints': ['it is all good']}),
-        ]))
-        self.valid_solution_2 = Solution(plan_json=json.dumps([
-            ('email', {'address': 'wesley.kendall@akimbo.io', 'subject': 'POW', 'message': 'fake message'}),
-        ]))
-        self.in_valid_solution = Solution(plan_json=json.dumps([
+        self.valid_solution = Solution(issue=self.issue, plan=[
+            ['email', {'adddress': 'josh.marlow@akimbo.io', 'subject': 'fake subject', 'message': 'fake message'}],
+            ['defer_to_admins', {'subject': 'copacetic', 'hints': ['it is all good']}],
+        ])
+        self.valid_solution.save_plan()
+
+        self.valid_solution_2 = Solution(issue=self.issue, plan=[
+            ['email', {'address': 'wesley.kendall@akimbo.io', 'subject': 'POW', 'message': 'fake message'}],
+        ])
+        self.valid_solution_2.save_plan()
+
+        self.in_valid_solution = Solution(plan=[
             ('format', {'drive': 'C'}),
-        ]))
+        ])
 
     def test_get_diagnostic_cases(self):
         self.assertEqual(
@@ -106,15 +113,30 @@ class AssertionTests(TestCase):
         self.assertFalse(self.execute_solution_called, 'execute_solution should not have been called')
         self.assertTrue(self.defer_to_admins_called, 'Admins should have been notified')
 
-        # Test that if only one diagnostic case returns a solution, it is executed
+        # Test that if only one diagnostic case returns a solution, it saved in the database,
+        # and it is executed
         self.mock_solution_1 = self.valid_solution
         self.mock_solution_2 = None
+
+        solution_count = Solution.objects.all().count()
 
         self.assertion.diagnose()
 
         self.assertTrue(self.execute_solution_called, 'execute_solution should not have been called')
+        self.assertEqual(
+            Solution.objects.all().count(),
+            solution_count + 1,
+            'One more solution should have been created')
 
-        # Test that if multiple diagnostic case return solutions, none are executed, but a conflict is
+        last_solution = Solution.objects.order_by('-id')[0]
+        last_solution.load_plan()
+
+        self.assertEqual(
+            last_solution.plan,
+            self.valid_solution.plan,
+            'Solution Plan stored in the database should match the newly created solution')
+
+        # Test that if multiple diagnostic case return solutions, none are executed, but an impasse is
         #   created and the admins are notified.
         self.execute_solution_called = False
 
@@ -146,6 +168,9 @@ class AssertionTests(TestCase):
         creates and resolves Issue objects.
         """
         # Verify that a successful assertion does not create a new Issue
+        self.issue.status = IssueStatusType.Resolved
+        self.issue.save()
+
         self.check_return_value = True
         self.post_recovery_cleanup_called = False
 
