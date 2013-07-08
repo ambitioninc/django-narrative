@@ -164,7 +164,7 @@ class AssertionTests(TestCase):
             self.deferred_kwargs, {'subject': 'copacetic', 'hints': ['it is all good']},
             'Verifying that the appropriate kwargs were used in executing the step')
 
-    def test_check_and_diagnose(self):
+    def test_check_and_diagnose_with_passing_check(self):
         """
         Verifies that the check_and_diagnosis method appropriately
         creates and resolves Issue objects.
@@ -188,7 +188,11 @@ class AssertionTests(TestCase):
             self.post_recovery_cleanup_called,
             'post_recovery_clean_up should not have been called')
 
+    def test_check_and_diagnose_with_failing_check(self):
         # Verify that a failed assertion creates a new Issue
+        self.issue.status = IssueStatusType.Resolved
+        self.issue.save()
+
         self.check_return_value = False
         self.post_recovery_cleanup_called = False
 
@@ -212,7 +216,12 @@ class AssertionTests(TestCase):
             self.post_recovery_cleanup_called,
             'post_recovery_clean_up should not have been called')
 
+    def test_check_and_diagnose_with_recovered_check(self):
         # Verify that a failed assertion does not create a new Issue if one already exist
+        test_issue = Issue.objects.get(failed_assertion=self.assertion_meta, status=IssueStatusType.Open)
+
+        self.post_recovery_cleanup_called = False
+
         Issue_count = Issue.objects.all().count()
 
         self.assertion.check_and_diagnose()
@@ -230,15 +239,13 @@ class AssertionTests(TestCase):
         self.check_return_value = True
         self.post_recovery_cleanup_called = False
 
-        test_Issue = Issue.objects.get(failed_assertion=self.assertion_meta, status=IssueStatusType.Open)
-
         self.assertion.check_and_diagnose()
 
         # Reload the previously open test Issue
-        test_Issue = Issue.objects.get(id=test_Issue.id)
+        test_issue = Issue.objects.get(id=test_issue.id)
 
         self.assertEqual(
-            test_Issue.status,
+            test_issue.status,
             IssueStatusType.Resolved,
             'Issue should have been resolved')
 
