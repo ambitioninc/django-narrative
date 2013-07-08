@@ -184,7 +184,7 @@ class Assertion(object):
         hints = map(str, solutions)
 
         message += '\n'.join(hints)
-        
+
         message_html = message
 
         self.do_defer_to_admins(subject, message, message_html)
