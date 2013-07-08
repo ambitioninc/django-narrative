@@ -102,7 +102,7 @@ class AssertionTests(TestCase):
         self.assertFalse(self.assertion.validate_solution(self.in_valid_solution), 'Validating invalid solution')
         self.assertTrue(self.defer_to_admins_called, 'Verifying the admins were notified of an invalid solution')
 
-    def test_diagnose(self):
+    def test_diagnose_with_no_solution(self):
         # Test that if no diagnostic case returns a solution, none are executed, and
         #   the admins are notified.
         self.mock_solution_1 = None
@@ -113,7 +113,8 @@ class AssertionTests(TestCase):
         self.assertFalse(self.execute_solution_called, 'execute_solution should not have been called')
         self.assertTrue(self.defer_to_admins_called, 'Admins should have been notified')
 
-        # Test that if only one diagnostic case returns a solution, it saved in the database,
+    def test_diagnose_with_one_solution(self):
+        # Test that if only one diagnostic case returns a solution, it is saved in the database,
         # and it is executed
         self.mock_solution_1 = self.valid_solution
         self.mock_solution_2 = None
@@ -136,6 +137,7 @@ class AssertionTests(TestCase):
             self.valid_solution.plan,
             'Solution Plan stored in the database should match the newly created solution')
 
+    def test_diagnose_with_multiple_solutions(self):
         # Test that if multiple diagnostic case return solutions, none are executed, but an impasse is
         #   created and the admins are notified.
         self.execute_solution_called = False
@@ -147,7 +149,7 @@ class AssertionTests(TestCase):
 
         self.assertFalse(self.execute_solution_called, 'execute_solution should not have been called')
         self.assertTrue(
-            self.defer_to_admins_called, 'Verifies that the admins were contacted about the multiple solutions')
+            self.deferred_multiple_solutions, 'Verifies that the admins were contacted about the multiple solutions')
 
     def test_execute_solution(self):
         # Verify the solution was executed

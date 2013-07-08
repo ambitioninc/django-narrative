@@ -166,7 +166,7 @@ class Assertion(object):
                 getattr(self, self.get_action_handler(action))(**kwargs)
 
     ### do_* methods for executing particular operations such as notifying individuals ###
-    def do_defer_to_admins(self, subject, message, message_html=None, hints=[]):
+    def do_defer_to_admins(self, subject, message, message_html=None):
         admin_group = Group.objects.get(name=settings.NARRATIVE_ADMIN_GROUP_NAME)
         admins = admin_group.user_set.all()
 
@@ -183,7 +183,11 @@ class Assertion(object):
 
         hints = map(str, solutions)
 
-        self.do_defer_to_admins(subject, message, hints=hints)
+        message += '\n'.join(hints)
+        
+        message_html = message
+
+        self.do_defer_to_admins(subject, message, message_html)
 
     def do_email(self, address, subject, message_txt, message_html):
         blast_email(subject, message_txt, message_html, [address])
