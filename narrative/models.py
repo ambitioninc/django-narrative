@@ -36,7 +36,7 @@ class IssueStatusType(StatusType):
     # An open problem; we've not tried to fix it yet
     Open = 0
 
-    # We've applied a solution are waiting to see if it
+    # We've applied a solution and are waiting to see if it
     # fixes things.
     SolutionApplied = 1
 
