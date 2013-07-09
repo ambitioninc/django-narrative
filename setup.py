@@ -5,7 +5,6 @@ setup(
     version='0.2',
     packages=[
         'narrative',
-        'narrative.migrations',
         'narrative.management',
         'narrative.management.commands',
     ],
