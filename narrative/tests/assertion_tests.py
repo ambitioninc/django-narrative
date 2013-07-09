@@ -191,13 +191,17 @@ class Test_diganose(TestCase):
             solution_count + 1,
             'One more solution should have been created')
 
-        last_solution = Solution.objects.filter(issue__status=IssueStatusType.SolutionApplied).order_by('-id')[0]
+        last_solution = Solution.objects.order_by('-id')[0]
         last_solution.load_plan()
 
         self.assertEqual(
             last_solution.plan,
             self.valid_solution.plan,
             'Solution Plan stored in the database should match the newly created solution')
+        self.assertEqual(
+            Issue.objects.get(id=self.issue.id).status,
+            IssueStatusType.SolutionApplied,
+            'Issue status should have been updated to SolutionApplied')
 
     def test_diagnose_with_multiple_solutions(self):
         # Test that if multiple diagnostic case return solutions, none are executed, but an impasse is
