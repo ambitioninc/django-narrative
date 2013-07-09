@@ -19,43 +19,30 @@ class AssertionTests(TestCase):
         self.deferred_multiple_solutions = False
         self.defer_to_admins_called = False
         self.email_called = False
-        self.deferred_args = None
         self.deferred_kwargs = None
 
         # Values returned by stubbed methods
-        self.check_return_value = False
         self.mock_solution_1 = None
         self.mock_solution_2 = None
 
         class TestAssertion(Assertion):
-            @property
-            def display_name(self_):
-                return 'Test Assertion'
-
             def check(self_):
-                return self.check_return_value
+                pass
 
             def post_recovery_cleanup(self_):
                 self.post_recovery_cleanup_called = True
 
-            def execute_solution(self_, solution):
-                self.execute_solution_called = True
-                super(TestAssertion, self_).execute_solution(solution)
-
             def diagnostic_case_test_1(self_, *args, **kwargs):
-                self.diagnostic_case_test_1_called = True
-                return self.mock_solution_1
+                pass
 
             def diagnostic_case_test_2(self_, *args, **kwargs):
-                self.diagnostic_case_test_2_called = True
-                return self.mock_solution_2
+                pass
 
             def do_defer_multiple_solutions_to_admins(self_, solutions):
                 self.deferred_multiple_solutions = True
 
             def do_defer_to_admins(self_, *args, **kwargs):
                 self.defer_to_admins_called = True
-                self.deferred_args = args
                 self.deferred_kwargs = kwargs
 
             def do_email(self_, *args, **kwargs):
@@ -101,6 +88,85 @@ class AssertionTests(TestCase):
 
         self.assertFalse(self.assertion.validate_solution(self.in_valid_solution), 'Validating invalid solution')
         self.assertTrue(self.defer_to_admins_called, 'Verifying the admins were notified of an invalid solution')
+
+    def test_execute_solution(self):
+        # Verify the solution was executed
+        self.assertion.execute_solution(self.valid_solution)
+
+        # Verify that the steps were executed appropriately
+        self.assertTrue(self.email_called, 'Verifies that the appropriate person was emailed')
+        self.assertTrue(self.defer_to_admins_called, 'Verifies that the admins were called')
+
+        # Verify that the args and kwargs were passed into the steps appropriately
+        self.assertEqual(
+            self.deferred_kwargs, {'subject': 'copacetic', 'hints': ['it is all good']},
+            'Verifying that the appropriate kwargs were used in executing the step')
+
+
+class Test_diganose(TestCase):
+    def setUp(self):
+        # Fields set by stubbed methods
+        self.diagnostic_case_test_1_called = False
+        self.diagnostic_case_test_2_called = False
+        self.execute_solution_called = False
+        self.deferred_multiple_solutions = False
+        self.defer_to_admins_called = False
+        self.email_called = False
+        self.deferred_kwargs = None
+
+        # Values returned by stubbed methods
+        self.mock_solution_1 = None
+        self.mock_solution_2 = None
+
+        class TestAssertion(Assertion):
+            def check(self_):
+                pass
+
+            def execute_solution(self_, solution):
+                self.execute_solution_called = True
+                super(TestAssertion, self_).execute_solution(solution)
+
+            def diagnostic_case_test_1(self_, *args, **kwargs):
+                self.diagnostic_case_test_1_called = True
+                return self.mock_solution_1
+
+            def diagnostic_case_test_2(self_, *args, **kwargs):
+                self.diagnostic_case_test_2_called = True
+                return self.mock_solution_2
+
+            def do_defer_multiple_solutions_to_admins(self_, solutions):
+                self.deferred_multiple_solutions = True
+
+            def do_defer_to_admins(self_, *args, **kwargs):
+                self.defer_to_admins_called = True
+                self.deferred_kwargs = kwargs
+
+            def do_email(self_, *args, **kwargs):
+                self.email_called = True
+
+        self.assertion_meta = AssertionMeta.objects.create(
+            display_name='Mock assertion', assertion_load_path='foo.bar', enabled=True)
+
+        self.assertion = TestAssertion(self.assertion_meta)
+
+        self.issue = Issue(failed_assertion=self.assertion_meta)
+        self.issue.save()
+
+        # Some solutions
+        self.valid_solution = Solution(issue=self.issue, plan=[
+            ['email', {'adddress': 'josh.marlow@akimbo.io', 'subject': 'fake subject', 'message': 'fake message'}],
+            ['defer_to_admins', {'subject': 'copacetic', 'hints': ['it is all good']}],
+        ])
+        self.valid_solution.save_plan()
+
+        self.valid_solution_2 = Solution(issue=self.issue, plan=[
+            ['email', {'address': 'wesley.kendall@akimbo.io', 'subject': 'POW', 'message': 'fake message'}],
+        ])
+        self.valid_solution_2.save_plan()
+
+        self.in_valid_solution = Solution(plan=[
+            ('format', {'drive': 'C'}),
+        ])
 
     def test_diagnose_with_no_solution(self):
         # Test that if no diagnostic case returns a solution, none are executed, and
@@ -151,18 +217,48 @@ class AssertionTests(TestCase):
         self.assertTrue(
             self.deferred_multiple_solutions, 'Verifies that the admins were contacted about the multiple solutions')
 
-    def test_execute_solution(self):
-        # Verify the solution was executed
-        self.assertion.execute_solution(self.valid_solution)
 
-        # Verify that the steps were executed appropriately
-        self.assertTrue(self.email_called, 'Verifies that the appropriate person was emailed')
-        self.assertTrue(self.defer_to_admins_called, 'Verifies that the admins were called')
+class Test_check_and_diagnose(TestCase):
+    def setUp(self):
+        # Fields set by stubbed methods
+        self.diagnose_called = False
+        self.post_recovery_cleanup_called = True
+        self.execute_solution_called = False
+        self.deferred_multiple_solutions = False
+        self.defer_to_admins_called = False
+        self.email_called = False
+        self.deferred_kwargs = None
 
-        # Verify that the args and kwargs were passed into the steps appropriately
-        self.assertEqual(
-            self.deferred_kwargs, {'subject': 'copacetic', 'hints': ['it is all good']},
-            'Verifying that the appropriate kwargs were used in executing the step')
+        # Values returned by stubbed methods
+        self.check_return_value = False
+
+        class TestAssertion(Assertion):
+            def check(self_):
+                return self.check_return_value
+
+            def post_recovery_cleanup(self_):
+                self.post_recovery_cleanup_called = True
+
+            def execute_solution(self_, solution):
+                self.execute_solution_called = True
+
+            def diagnose(self_, *args, **kwargs):
+                self.diagnose_called = True
+
+            def do_defer_multiple_solutions_to_admins(self_, solutions):
+                self.deferred_multiple_solutions = True
+
+            def do_defer_to_admins(self_, *args, **kwargs):
+                self.defer_to_admins_called = True
+                self.deferred_kwargs = kwargs
+
+            def do_email(self_, *args, **kwargs):
+                self.email_called = True
+
+        self.assertion_meta = AssertionMeta.objects.create(
+            display_name='Mock assertion', assertion_load_path='foo.bar', enabled=True)
+
+        self.assertion = TestAssertion(self.assertion_meta)
 
     def test_check_and_diagnose_with_passing_check(self):
         """
@@ -170,9 +266,6 @@ class AssertionTests(TestCase):
         creates and resolves Issue objects.
         """
         # Verify that a successful assertion does not create a new Issue
-        self.issue.status = IssueStatusType.Resolved
-        self.issue.save()
-
         self.check_return_value = True
         self.post_recovery_cleanup_called = False
 
@@ -190,9 +283,6 @@ class AssertionTests(TestCase):
 
     def test_check_and_diagnose_with_failing_check(self):
         # Verify that a failed assertion creates a new Issue
-        self.issue.status = IssueStatusType.Resolved
-        self.issue.save()
-
         self.check_return_value = False
         self.post_recovery_cleanup_called = False
 
@@ -218,7 +308,7 @@ class AssertionTests(TestCase):
 
     def test_check_and_diagnose_with_recovered_check(self):
         # Verify that a failed assertion does not create a new Issue if one already exist
-        test_issue = Issue.objects.get(failed_assertion=self.assertion_meta, status=IssueStatusType.Open)
+        test_issue = Issue.objects.create(failed_assertion=self.assertion_meta, status=IssueStatusType.Open)
 
         self.post_recovery_cleanup_called = False
 
