@@ -65,16 +65,26 @@ class Assertion(object):
 
             return False
         elif len(solutions) > 1:
-            # Multiple solutions found, notify the admins
+            # Multiple solutions found; record them and, notify the admins
+            for soln in solutions:
+                soln.save_plan()
+                soln.save()
+
+            issue = solutions[0].issue
+            issue.status = IssueStatusType.Impasse
+            issue.save()
+
             self.do_defer_multiple_solutions_to_admins(solutions)
 
             return False
         else:
-            # Found a solution; apply it
+            # Found a solution; save it in the database and apply it
             solution = solutions[0]
             solution.save_plan()
             solution.save()
+
             self.execute_solution(solution)
+
             solution.issue.status = IssueStatusType.SolutionApplied
             solution.issue.save()
 

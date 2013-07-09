@@ -221,6 +221,34 @@ class Test_diganose(TestCase):
         self.assertTrue(
             self.deferred_multiple_solutions, 'Verifies that the admins were contacted about the multiple solutions')
 
+        issue_reloaded = Issue.objects.get(id=self.issue.id)
+
+        # Reload the issue to check that it's state has changed
+        self.assertEqual(
+            issue_reloaded.status,
+            IssueStatusType.Impasse,
+            'Issue status should have been updated to Impasse')
+
+        solution_set = Solution.objects.filter(issue=issue_reloaded)
+
+        self.assertEqual(
+            len(solution_set),
+            2,
+            'Expected two valid solutions')
+
+        # Load up all of the plans for comparison
+        [solution.load_plan() for solution in solution_set]
+
+        self.assertEqual(
+            solution_set[0].plan,
+            self.valid_solution.plan,
+            'First solution Plan stored in the database should match the newly created solution')
+        self.assertEqual(
+            solution_set[1].plan,
+            self.valid_solution_2.plan,
+            'Second solution Plan stored in the database should match the newly created solution')
+
+
 
 class Test_check_and_diagnose(TestCase):
     def setUp(self):
