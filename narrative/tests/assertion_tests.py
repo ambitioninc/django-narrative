@@ -295,13 +295,13 @@ class Test_check_and_diagnose(TestCase):
         self.check_return_value = True
         self.post_recovery_cleanup_called = False
 
-        Issue_count = Issue.objects.all().count()
+        issue_count = Issue.objects.all().count()
 
         self.assertion.check_and_diagnose()
 
         self.assertEqual(
             Issue.objects.all().count(),
-            Issue_count,
+            issue_count,
             'A new Issue should not have been created')
         self.assertFalse(
             self.post_recovery_cleanup_called,
@@ -316,7 +316,7 @@ class Test_check_and_diagnose(TestCase):
 
         self.assertion.check_and_diagnose()
 
-        open_Issue_count = Issue.objects.filter(
+        open_issue_count = Issue.objects.filter(
             failed_assertion=self.assertion.assertion_meta,
             status=IssueStatusType.Open).count()
 
@@ -325,7 +325,7 @@ class Test_check_and_diagnose(TestCase):
             issue_count + 1,
             'A new Issue should have been created')
         self.assertEqual(
-            open_Issue_count,
+            open_issue_count,
             1,
             'There should be one open Issue for this assertion')
         self.assertFalse(
@@ -338,13 +338,13 @@ class Test_check_and_diagnose(TestCase):
 
         self.post_recovery_cleanup_called = False
 
-        Issue_count = Issue.objects.all().count()
+        issue_count = Issue.objects.all().count()
 
         self.assertion.check_and_diagnose()
 
         self.assertEqual(
             Issue.objects.all().count(),
-            Issue_count,
+            issue_count,
             'A duplicate Issue should not have been created')
         self.assertFalse(
             self.post_recovery_cleanup_called,
