@@ -56,6 +56,11 @@ class Assertion(object):
         # Filter out any 'None' results
         solutions = filter(bool, diagnostic_results)
 
+        # Attach the issue to all solutions
+        current_issue = kwargs.pop('current_issue')
+        for soln in solutions:
+            soln.issue = current_issue
+
         if len(solutions) == 0:
             # No solution found, notify the admins
             message = 'Failed Assertion: {0} ({1}) has no proposed solutions'.format(

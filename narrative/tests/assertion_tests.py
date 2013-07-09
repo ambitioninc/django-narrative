@@ -53,13 +53,13 @@ class AssertionTests(TestCase):
         self.issue.save()
 
         # Some solutions
-        self.valid_solution = Solution(issue=self.issue, plan=[
+        self.valid_solution = Solution(plan=[
             ['email', {'adddress': 'josh.marlow@akimbo.io', 'subject': 'fake subject', 'message': 'fake message'}],
             ['defer_to_admins', {'subject': 'copacetic', 'hints': ['it is all good']}],
         ])
         self.valid_solution.save_plan()
 
-        self.valid_solution_2 = Solution(issue=self.issue, plan=[
+        self.valid_solution_2 = Solution(plan=[
             ['email', {'address': 'wesley.kendall@akimbo.io', 'subject': 'POW', 'message': 'fake message'}],
         ])
         self.valid_solution_2.save_plan()
@@ -170,7 +170,7 @@ class Test_diganose(TestCase):
         self.mock_solution_1 = None
         self.mock_solution_2 = None
 
-        self.assertion.diagnose()
+        self.assertion.diagnose(**{'current_issue': self.issue})
 
         self.assertFalse(self.execute_solution_called, 'execute_solution should not have been called')
         self.assertTrue(self.defer_to_admins_called, 'Admins should have been notified')
@@ -183,7 +183,7 @@ class Test_diganose(TestCase):
 
         solution_count = Solution.objects.all().count()
 
-        self.assertion.diagnose()
+        self.assertion.diagnose(**{'current_issue': self.issue})
 
         self.assertTrue(self.execute_solution_called, 'execute_solution should not have been called')
         self.assertEqual(
@@ -215,7 +215,7 @@ class Test_diganose(TestCase):
         self.mock_solution_1 = self.valid_solution
         self.mock_solution_2 = self.valid_solution_2
 
-        self.assertion.diagnose()
+        self.assertion.diagnose(**{'current_issue': self.issue})
 
         self.assertFalse(self.execute_solution_called, 'execute_solution should not have been called')
         self.assertTrue(
