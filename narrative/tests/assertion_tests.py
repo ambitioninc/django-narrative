@@ -196,7 +196,7 @@ class AssertionTests(TestCase):
         self.check_return_value = False
         self.post_recovery_cleanup_called = False
 
-        Issue_count = Issue.objects.all().count()
+        issue_count = Issue.objects.all().count()
 
         self.assertion.check_and_diagnose()
 
@@ -206,7 +206,7 @@ class AssertionTests(TestCase):
 
         self.assertEqual(
             Issue.objects.all().count(),
-            Issue_count + 1,
+            issue_count + 1,
             'A new Issue should have been created')
         self.assertEqual(
             open_Issue_count,
