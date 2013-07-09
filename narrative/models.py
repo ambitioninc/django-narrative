@@ -179,6 +179,9 @@ class Issue(models.Model):
     created_timestamp = models.DateTimeField(auto_now_add=True)
     resolved_timestamp = models.DateTimeField(null=True, blank=True)
 
+    def __unicode__(self):
+        return u'Issue:{0}'.format(self.failed_assertion.display_name)
+
 
 class ModelIssue(Issue):
     """
