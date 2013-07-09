@@ -249,7 +249,6 @@ class Test_diganose(TestCase):
             'Second solution Plan stored in the database should match the newly created solution')
 
 
-
 class Test_check_and_diagnose(TestCase):
     def setUp(self):
         # Fields set by stubbed methods
