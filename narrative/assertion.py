@@ -125,6 +125,8 @@ class Assertion(object):
                 unresolved_issue_queryset.update(status=IssueStatusType.Resolved)
 
                 self.post_recovery_cleanup(*args, **kwargs)
+
+            return True
         else:
             # Something's wrong
             if unresolved_issue_queryset.exists():
@@ -138,6 +140,8 @@ class Assertion(object):
 
             # Try to fix the issue
             self.diagnose(*args, **kwargs)
+
+            return False
 
     @property
     def diagnostic_cases(self):
