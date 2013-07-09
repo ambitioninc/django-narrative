@@ -24,12 +24,14 @@ def blast_email(subject, message_txt, message_html, recipients):
 class Diagnosis(object):
     class Type:
         EXEC = 0                # A diagnosis has been found
-        UNKNOWN = 1              # No diagnosis found
-        PASS = 2                # Pass on this issue for now
+        PASS = 1                # Pass on this issue for now
 
     def __init__(self, type_, soln):
         self.type = type_
         self.solution = soln
+
+    def __unicode__(self):
+        return u'{0}:{1}'.format(self.type, self.solution)
 
 
 class Assertion(object):
@@ -59,17 +61,16 @@ class Assertion(object):
         If there are no solutions found, notify someone.
         If one solution is found, apply it.
         """
+        current_issue = kwargs.pop('current_issue')
         # Get all diagnostic results
         diagnostic_results = [
-            getattr(self, diagnostic_case_name)(*args, **kwargs)
+            getattr(self, diagnostic_case_name)(current_issue, *args, **kwargs)
             for diagnostic_case_name in self.diagnostic_cases
         ]
 
         # Filter out any 'None' results
         diagnostic_results = filter(bool, diagnostic_results)
 
-        # Attach the issue to all solutions
-        current_issue = kwargs.pop('current_issue')
         for dr in diagnostic_results:
             if dr.type == Diagnosis.Type.EXEC:
                 dr.solution.issue = current_issue

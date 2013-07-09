@@ -135,11 +135,11 @@ class Test_diganose(TestCase):
                 self.execute_solution_called = True
                 super(TestAssertion, self_).execute_solution(solution)
 
-            def diagnostic_case_test_1(self_, *args, **kwargs):
+            def diagnostic_case_test_1(self_, current_issue, *args, **kwargs):
                 self.diagnostic_case_test_1_called = True
                 return self.mock_diagnosis_1
 
-            def diagnostic_case_test_2(self_, *args, **kwargs):
+            def diagnostic_case_test_2(self_, current_issue, *args, **kwargs):
                 self.diagnostic_case_test_2_called = True
                 return self.mock_diagnosis_2
 
