@@ -1,6 +1,8 @@
 import json
 import uuid
 
+from pytz import utc as utc_tz
+
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.db import models
@@ -34,7 +36,7 @@ class IssueStatusType(StatusType):
     # An open problem; we've not tried to fix it yet
     Open = 0
 
-    # We've applied a solution are waiting to see if it
+    # We've applied a solution and are waiting to see if it
     # fixes things.
     SolutionApplied = 1
 
@@ -75,6 +77,10 @@ class Event(models.Model):
     # An ID to tie particular events together
     thread_id = models.CharField(max_length=36, null=True, blank=True)
 
+    @property
+    def timestamp_with_tz(self):
+        return utc_tz.localize(self.timestamp)
+
     def save(self, *args, **kwargs):
         if None == self.thread_id:
             self.thread_id = str(uuid.uuid4())
@@ -97,10 +103,16 @@ def log_event(status_name, origin, event_name, event_operand=None, thread_id=Non
 
 
 class Solution(models.Model):
-    Issue = models.ForeignKey('Issue')
+    def __init__(self, *args, **kwargs):
+        self.plan = kwargs.pop('plan', [])
+        self.save_plan()
+
+        super(Solution, self).__init__(*args, **kwargs)
+
+    issue = models.ForeignKey('Issue')
 
     # What was the name of the diagnostic method that generated this solution?
-    diagnostic_Issue_name = models.CharField(max_length=64)
+    diagnostic_case_name = models.CharField(max_length=64)
 
     # Description of the problem this solution addresses
     problem_description = models.CharField(max_length=128)
@@ -111,14 +123,11 @@ class Solution(models.Model):
     # Time in which the solution was enacted
     enacted = models.DateTimeField(null=True, blank=True)
 
-    @property
-    def plan(self):
-        if not hasattr(self, '_plan'):
-            self._plan = json.loads(self.plan_json)
-        return self._plan
+    def load_plan(self):
+        self.plan = json.loads(self.plan_json)
 
-    def save(self, *args, **kwargs):
-        self.plan_json = json.dumps(self._plan)
+    def save_plan(self):
+        self.plan_json = json.dumps(self.plan)
 
 
 class AssertionMeta(models.Model):
@@ -150,7 +159,7 @@ class AssertionMeta(models.Model):
         if not loaded_assertion_class:
             return None
 
-        return loaded_assertion_class(self)
+        return loaded_assertion_class
 
     def __unicode__(self):
         return u'{0}::{1}'.format(self.display_name, self.assertion_load_path)
@@ -169,6 +178,9 @@ class Issue(models.Model):
 
     created_timestamp = models.DateTimeField(auto_now_add=True)
     resolved_timestamp = models.DateTimeField(null=True, blank=True)
+
+    def __unicode__(self):
+        return u'Issue:{0}'.format(self.failed_assertion.display_name)
 
 
 class ModelIssue(Issue):

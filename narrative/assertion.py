@@ -1,5 +1,6 @@
 import abc
 import copy
+import datetime
 
 from django.conf import settings
 from django.contrib.auth.models import Group
@@ -18,6 +19,19 @@ def blast_email(subject, message_txt, message_html, recipients):
         email.attach_alternative(message_html, 'text/html')
 
     email.send()
+
+
+class Diagnosis(object):
+    class Type:
+        EXEC = 0                # A diagnosis has been found
+        PASS = 1                # Pass on this issue for now
+
+    def __init__(self, type_, soln):
+        self.type = type_
+        self.solution = soln
+
+    def __unicode__(self):
+        return u'{0}:{1}'.format(self.type, self.solution)
 
 
 class Assertion(object):
@@ -47,33 +61,43 @@ class Assertion(object):
         If there are no solutions found, notify someone.
         If one solution is found, apply it.
         """
+        current_issue = kwargs.pop('current_issue')
         # Get all diagnostic results
         diagnostic_results = [
-            getattr(self, diagnostic_case_name)(*args, **kwargs)
+            getattr(self, diagnostic_case_name)(current_issue, *args, **kwargs)
             for diagnostic_case_name in self.diagnostic_cases
         ]
 
         # Filter out any 'None' results
-        solutions = filter(bool, diagnostic_results)
+        diagnostic_results = filter(bool, diagnostic_results)
 
-        if len(solutions) == 0:
+        for dr in diagnostic_results:
+            if dr.type == Diagnosis.Type.EXEC:
+                dr.solution.issue = current_issue
+
+        if len(diagnostic_results) == 0:
             # No solution found, notify the admins
             message = 'Failed Assertion: {0} ({1}) has no proposed solutions'.format(
                 self.assertion_meta.display_name, self.__class__.__name__)
 
             self.do_defer_to_admins('Failed assertion; No solutions found', message)
+        elif len(diagnostic_results) > 1:
+            # Multiple solutions found; record them and, notify the admins
+            for dr in diagnostic_results:
+                dr.solution.save_plan()
+                dr.solution.save()
 
-            return False
-        elif len(solutions) > 1:
-            # Multiple solutions found, notify the admins
-            self.do_defer_multiple_solutions_to_admins(solutions)
+            issue = diagnostic_results[0].solution.issue
+            issue.status = IssueStatusType.Impasse
+            issue.save()
 
-            return False
+            self.do_defer_multiple_solutions_to_admins(diagnostic_results)
         else:
-            # Found a solution; apply it
-            self.execute_solution(solutions[0])
+            # Found a solution; save it in the database and apply it (unless it's a PASS)
+            diagnosis = diagnostic_results[0]
 
-            return True
+            if Diagnosis.Type.EXEC == diagnosis.type:
+                self.execute_solution(diagnosis.solution)
 
     def post_recovery_cleanup(self):
         """
@@ -105,6 +129,8 @@ class Assertion(object):
                 unresolved_issue_queryset.update(status=IssueStatusType.Resolved)
 
                 self.post_recovery_cleanup(*args, **kwargs)
+
+            return True
         else:
             # Something's wrong
             if unresolved_issue_queryset.exists():
@@ -118,6 +144,8 @@ class Assertion(object):
 
             # Try to fix the issue
             self.diagnose(*args, **kwargs)
+
+            return False
 
     @property
     def diagnostic_cases(self):
@@ -152,6 +180,9 @@ class Assertion(object):
         else:
             return True
 
+    def get_utc_now(self):
+        return datetime.datetime.utcnow()
+
     def execute_solution(self, solution):
         """
         Validate a solution, then step through and execute each of it's steps.
@@ -162,8 +193,15 @@ class Assertion(object):
 
                 getattr(self, self.get_action_handler(action))(**kwargs)
 
+            solution.save_plan()
+            solution.enacted = self.get_utc_now()
+            solution.save()
+
+            solution.issue.status = IssueStatusType.SolutionApplied
+            solution.issue.save()
+
     ### do_* methods for executing particular operations such as notifying individuals ###
-    def do_defer_to_admins(self, subject, message, message_html=None, hints=[]):
+    def do_defer_to_admins(self, subject, message, message_html=None):
         admin_group = Group.objects.get(name=settings.NARRATIVE_ADMIN_GROUP_NAME)
         admins = admin_group.user_set.all()
 
@@ -180,7 +218,11 @@ class Assertion(object):
 
         hints = map(str, solutions)
 
-        self.do_defer_to_admins(subject, message, hints=hints)
+        message += '\n'.join(hints)
+
+        message_html = message
+
+        self.do_defer_to_admins(subject, message, message_html)
 
     def do_email(self, address, subject, message_txt, message_html):
         blast_email(subject, message_txt, message_html, [address])

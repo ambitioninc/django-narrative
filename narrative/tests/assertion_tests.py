@@ -1,3 +1,4 @@
+import datetime
 import json
 
 from django.conf import settings
@@ -5,7 +6,7 @@ from django.contrib.auth.models import Group, User
 from django.core import mail
 from django.test import TestCase
 
-from ..assertion import Assertion
+from ..assertion import Assertion, Diagnosis
 from ..models import Solution, AssertionMeta, Issue, IssueStatusType
 
 
@@ -19,43 +20,31 @@ class AssertionTests(TestCase):
         self.deferred_multiple_solutions = False
         self.defer_to_admins_called = False
         self.email_called = False
-        self.deferred_args = None
         self.deferred_kwargs = None
 
-        # Values returned by stubbed methods
-        self.check_return_value = False
-        self.mock_solution_1 = None
-        self.mock_solution_2 = None
+        self.mock_utc_now = datetime.datetime(2013, 7, 9, 12, 0, 0)
 
         class TestAssertion(Assertion):
-            @property
-            def display_name(self_):
-                return 'Test Assertion'
+            def get_utc_now(self_):
+                return self.mock_utc_now
 
             def check(self_):
-                return self.check_return_value
+                pass
 
             def post_recovery_cleanup(self_):
                 self.post_recovery_cleanup_called = True
 
-            def execute_solution(self_, solution):
-                self.execute_solution_called = True
-                super(TestAssertion, self_).execute_solution(solution)
-
             def diagnostic_case_test_1(self_, *args, **kwargs):
-                self.diagnostic_case_test_1_called = True
-                return self.mock_solution_1
+                pass
 
             def diagnostic_case_test_2(self_, *args, **kwargs):
-                self.diagnostic_case_test_2_called = True
-                return self.mock_solution_2
+                pass
 
             def do_defer_multiple_solutions_to_admins(self_, solutions):
                 self.deferred_multiple_solutions = True
 
             def do_defer_to_admins(self_, *args, **kwargs):
                 self.defer_to_admins_called = True
-                self.deferred_args = args
                 self.deferred_kwargs = kwargs
 
             def do_email(self_, *args, **kwargs):
@@ -67,16 +56,20 @@ class AssertionTests(TestCase):
         self.assertion = TestAssertion(self.assertion_meta)
 
         # Some solutions
-        self.valid_solution = Solution(plan_json=json.dumps([
-            ('email', {'adddress': 'josh.marlow@akimbo.io', 'subject': 'fake subject', 'message': 'fake message'}),
-            ('defer_to_admins', {'subject': 'copacetic', 'hints': ['it is all good']}),
-        ]))
-        self.valid_solution_2 = Solution(plan_json=json.dumps([
-            ('email', {'address': 'wesley.kendall@akimbo.io', 'subject': 'POW', 'message': 'fake message'}),
-        ]))
-        self.in_valid_solution = Solution(plan_json=json.dumps([
+        self.valid_solution = Solution(plan=[
+            ['email', {'adddress': 'josh.marlow@akimbo.io', 'subject': 'fake subject', 'message': 'fake message'}],
+            ['defer_to_admins', {'subject': 'copacetic', 'hints': ['it is all good']}],
+        ])
+        self.valid_solution.save_plan()
+
+        self.valid_solution_2 = Solution(plan=[
+            ['email', {'address': 'wesley.kendall@akimbo.io', 'subject': 'POW', 'message': 'fake message'}],
+        ])
+        self.valid_solution_2.save_plan()
+
+        self.in_valid_solution = Solution(plan=[
             ('format', {'drive': 'C'}),
-        ]))
+        ])
 
     def test_get_diagnostic_cases(self):
         self.assertEqual(
@@ -95,40 +88,12 @@ class AssertionTests(TestCase):
         self.assertFalse(self.assertion.validate_solution(self.in_valid_solution), 'Validating invalid solution')
         self.assertTrue(self.defer_to_admins_called, 'Verifying the admins were notified of an invalid solution')
 
-    def test_diagnose(self):
-        # Test that if no diagnostic case returns a solution, none are executed, and
-        #   the admins are notified.
-        self.mock_solution_1 = None
-        self.mock_solution_2 = None
-
-        self.assertion.diagnose()
-
-        self.assertFalse(self.execute_solution_called, 'execute_solution should not have been called')
-        self.assertTrue(self.defer_to_admins_called, 'Admins should have been notified')
-
-        # Test that if only one diagnostic case returns a solution, it is executed
-        self.mock_solution_1 = self.valid_solution
-        self.mock_solution_2 = None
-
-        self.assertion.diagnose()
-
-        self.assertTrue(self.execute_solution_called, 'execute_solution should not have been called')
-
-        # Test that if multiple diagnostic case return solutions, none are executed, but a conflict is
-        #   created and the admins are notified.
-        self.execute_solution_called = False
-
-        self.mock_solution_1 = self.valid_solution
-        self.mock_solution_2 = self.valid_solution_2
-
-        self.assertion.diagnose()
-
-        self.assertFalse(self.execute_solution_called, 'execute_solution should not have been called')
-        self.assertTrue(
-            self.defer_to_admins_called, 'Verifies that the admins were contacted about the multiple solutions')
-
     def test_execute_solution(self):
         # Verify the solution was executed
+        self.issue = Issue(failed_assertion=self.assertion_meta)
+        self.issue.save()
+
+        self.valid_solution.issue = self.issue
         self.assertion.execute_solution(self.valid_solution)
 
         # Verify that the steps were executed appropriately
@@ -140,7 +105,201 @@ class AssertionTests(TestCase):
             self.deferred_kwargs, {'subject': 'copacetic', 'hints': ['it is all good']},
             'Verifying that the appropriate kwargs were used in executing the step')
 
-    def test_check_and_diagnose(self):
+        # Verify that the enacted time is updated
+        self.assertEqual(
+            Solution.objects.get(id=self.valid_solution.id).enacted,
+            self.mock_utc_now,
+            'Enacted time should have been updated to time of saving')
+
+
+class Test_diganose(TestCase):
+    def setUp(self):
+        # Fields set by stubbed methods
+        self.diagnostic_case_test_1_called = False
+        self.diagnostic_case_test_2_called = False
+        self.execute_solution_called = False
+        self.deferred_multiple_solutions = False
+        self.defer_to_admins_called = False
+        self.email_called = False
+        self.deferred_kwargs = None
+
+        # Values returned by stubbed methods
+        self.mock_diagnosis_1 = None
+        self.mock_diagnosis_2 = None
+
+        class TestAssertion(Assertion):
+            def check(self_):
+                pass
+
+            def execute_solution(self_, solution):
+                self.execute_solution_called = True
+                super(TestAssertion, self_).execute_solution(solution)
+
+            def diagnostic_case_test_1(self_, current_issue, *args, **kwargs):
+                self.diagnostic_case_test_1_called = True
+                return self.mock_diagnosis_1
+
+            def diagnostic_case_test_2(self_, current_issue, *args, **kwargs):
+                self.diagnostic_case_test_2_called = True
+                return self.mock_diagnosis_2
+
+            def do_defer_multiple_solutions_to_admins(self_, solutions):
+                self.deferred_multiple_solutions = True
+
+            def do_defer_to_admins(self_, *args, **kwargs):
+                self.defer_to_admins_called = True
+                self.deferred_kwargs = kwargs
+
+            def do_email(self_, *args, **kwargs):
+                self.email_called = True
+
+        self.assertion_meta = AssertionMeta.objects.create(
+            display_name='Mock assertion', assertion_load_path='foo.bar', enabled=True)
+
+        self.assertion = TestAssertion(self.assertion_meta)
+
+        self.issue = Issue(failed_assertion=self.assertion_meta)
+        self.issue.save()
+
+        # Some solutions
+        self.valid_solution = Solution(issue=self.issue, plan=[
+            ['email', {'adddress': 'josh.marlow@akimbo.io', 'subject': 'fake subject', 'message': 'fake message'}],
+            ['defer_to_admins', {'subject': 'copacetic', 'hints': ['it is all good']}],
+        ])
+        self.valid_solution.save_plan()
+
+        self.valid_solution_2 = Solution(issue=self.issue, plan=[
+            ['email', {'address': 'wesley.kendall@akimbo.io', 'subject': 'POW', 'message': 'fake message'}],
+        ])
+        self.valid_solution_2.save_plan()
+
+        self.in_valid_solution = Solution(plan=[
+            ('format', {'drive': 'C'}),
+        ])
+
+    def test_diagnose_with_no_solution(self):
+        # Test that if no diagnostic case returns a solution, none are executed, and
+        #   the admins are notified.
+        self.mock_diagnosis_1 = None
+        self.mock_diagnosis_2 = None
+
+        self.assertion.diagnose(**{'current_issue': self.issue})
+
+        self.assertFalse(self.execute_solution_called, 'execute_solution should not have been called')
+        self.assertTrue(self.defer_to_admins_called, 'Admins should have been notified')
+
+    def test_diagnose_with_one_solution(self):
+        # Test that if only one diagnostic case returns a solution, it is saved in the database,
+        # and it is executed
+        self.mock_diagnosis_1 = Diagnosis(Diagnosis.Type.EXEC, self.valid_solution)
+        self.mock_diagnosis_2 = None
+
+        solution_count = Solution.objects.all().count()
+
+        self.assertion.diagnose(**{'current_issue': self.issue})
+
+        self.assertTrue(self.execute_solution_called, 'execute_solution should not have been called')
+        self.assertEqual(
+            Solution.objects.all().count(),
+            solution_count + 1,
+            'One more solution should have been created')
+
+        issue_reloaded = Issue.objects.get(id=self.issue.id)
+
+        # Reload the issue to check that it's state has changed
+        self.assertEqual(
+            issue_reloaded.status,
+            IssueStatusType.SolutionApplied,
+            'Issue status should have been updated to SolutionApplied')
+
+        last_solution = Solution.objects.get(issue=issue_reloaded)
+        last_solution.load_plan()
+
+        self.assertEqual(
+            last_solution.plan,
+            self.valid_solution.plan,
+            'Solution Plan stored in the database should match the newly created solution')
+
+    def test_diagnose_with_multiple_solutions(self):
+        # Test that if multiple diagnostic case return solutions, none are executed, but an impasse is
+        #   created and the admins are notified.
+        self.execute_solution_called = False
+
+        self.mock_diagnosis_1 = Diagnosis(Diagnosis.Type.EXEC, self.valid_solution)
+        self.mock_diagnosis_2 = Diagnosis(Diagnosis.Type.EXEC, self.valid_solution_2)
+
+        self.assertion.diagnose(**{'current_issue': self.issue})
+
+        self.assertFalse(self.execute_solution_called, 'execute_solution should not have been called')
+        self.assertTrue(
+            self.deferred_multiple_solutions, 'Verifies that the admins were contacted about the multiple solutions')
+
+        issue_reloaded = Issue.objects.get(id=self.issue.id)
+
+        # Reload the issue to check that it's state has changed
+        self.assertEqual(
+            issue_reloaded.status,
+            IssueStatusType.Impasse,
+            'Issue status should have been updated to Impasse')
+
+        solution_set = Solution.objects.filter(issue=issue_reloaded)
+
+        self.assertEqual(
+            len(solution_set),
+            2,
+            'Expected two valid solutions')
+
+        plan_set = set([soln.plan_json for soln in solution_set])
+
+        self.assertEqual(
+            plan_set,
+            set([self.valid_solution.plan_json, self.valid_solution_2.plan_json]),
+            'Solution plans stored in the database should match the newly created solution')
+
+
+class Test_check_and_diagnose(TestCase):
+    def setUp(self):
+        # Fields set by stubbed methods
+        self.diagnose_called = False
+        self.post_recovery_cleanup_called = True
+        self.execute_solution_called = False
+        self.deferred_multiple_solutions = False
+        self.defer_to_admins_called = False
+        self.email_called = False
+        self.deferred_kwargs = None
+
+        # Values returned by stubbed methods
+        self.check_return_value = False
+
+        class TestAssertion(Assertion):
+            def check(self_):
+                return self.check_return_value
+
+            def post_recovery_cleanup(self_):
+                self.post_recovery_cleanup_called = True
+
+            def execute_solution(self_, solution):
+                self.execute_solution_called = True
+
+            def diagnose(self_, *args, **kwargs):
+                self.diagnose_called = True
+
+            def do_defer_multiple_solutions_to_admins(self_, solutions):
+                self.deferred_multiple_solutions = True
+
+            def do_defer_to_admins(self_, *args, **kwargs):
+                self.defer_to_admins_called = True
+                self.deferred_kwargs = kwargs
+
+            def do_email(self_, *args, **kwargs):
+                self.email_called = True
+
+        self.assertion_meta = AssertionMeta.objects.create(
+            display_name='Mock assertion', assertion_load_path='foo.bar', enabled=True)
+
+        self.assertion = TestAssertion(self.assertion_meta)
+
+    def test_check_and_diagnose_with_passing_check(self):
         """
         Verifies that the check_and_diagnosis method appropriately
         creates and resolves Issue objects.
@@ -149,50 +308,56 @@ class AssertionTests(TestCase):
         self.check_return_value = True
         self.post_recovery_cleanup_called = False
 
-        Issue_count = Issue.objects.all().count()
+        issue_count = Issue.objects.all().count()
 
         self.assertion.check_and_diagnose()
 
         self.assertEqual(
             Issue.objects.all().count(),
-            Issue_count,
+            issue_count,
             'A new Issue should not have been created')
         self.assertFalse(
             self.post_recovery_cleanup_called,
             'post_recovery_clean_up should not have been called')
 
+    def test_check_and_diagnose_with_failing_check(self):
         # Verify that a failed assertion creates a new Issue
         self.check_return_value = False
         self.post_recovery_cleanup_called = False
 
-        Issue_count = Issue.objects.all().count()
+        issue_count = Issue.objects.all().count()
 
         self.assertion.check_and_diagnose()
 
-        open_Issue_count = Issue.objects.filter(
+        open_issue_count = Issue.objects.filter(
             failed_assertion=self.assertion.assertion_meta,
             status=IssueStatusType.Open).count()
 
         self.assertEqual(
             Issue.objects.all().count(),
-            Issue_count + 1,
+            issue_count + 1,
             'A new Issue should have been created')
         self.assertEqual(
-            open_Issue_count,
+            open_issue_count,
             1,
             'There should be one open Issue for this assertion')
         self.assertFalse(
             self.post_recovery_cleanup_called,
             'post_recovery_clean_up should not have been called')
 
+    def test_check_and_diagnose_with_recovered_check(self):
         # Verify that a failed assertion does not create a new Issue if one already exist
-        Issue_count = Issue.objects.all().count()
+        test_issue = Issue.objects.create(failed_assertion=self.assertion_meta, status=IssueStatusType.Open)
+
+        self.post_recovery_cleanup_called = False
+
+        issue_count = Issue.objects.all().count()
 
         self.assertion.check_and_diagnose()
 
         self.assertEqual(
             Issue.objects.all().count(),
-            Issue_count,
+            issue_count,
             'A duplicate Issue should not have been created')
         self.assertFalse(
             self.post_recovery_cleanup_called,
@@ -203,15 +368,13 @@ class AssertionTests(TestCase):
         self.check_return_value = True
         self.post_recovery_cleanup_called = False
 
-        test_Issue = Issue.objects.get(failed_assertion=self.assertion_meta, status=IssueStatusType.Open)
-
         self.assertion.check_and_diagnose()
 
         # Reload the previously open test Issue
-        test_Issue = Issue.objects.get(id=test_Issue.id)
+        test_issue = Issue.objects.get(id=test_issue.id)
 
         self.assertEqual(
-            test_Issue.status,
+            test_issue.status,
             IssueStatusType.Resolved,
             'Issue should have been resolved')
 
@@ -220,7 +383,7 @@ class AssertionTests(TestCase):
             'post_recovery_clean_up should have been called')
 
 
-class DoTests(TestCase):
+class DoMethodTests(TestCase):
     """
     Tests for the various 'do_*' methods that come with
     the Assertion class.
