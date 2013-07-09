@@ -198,6 +198,7 @@ class Test_diganose(TestCase):
             last_solution.plan,
             self.valid_solution.plan,
             'Solution Plan stored in the database should match the newly created solution')
+        # Reload the issue to check that it's state has changed
         self.assertEqual(
             Issue.objects.get(id=self.issue.id).status,
             IssueStatusType.SolutionApplied,
