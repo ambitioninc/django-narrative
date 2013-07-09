@@ -112,7 +112,7 @@ class Solution(models.Model):
     issue = models.ForeignKey('Issue')
 
     # What was the name of the diagnostic method that generated this solution?
-    diagnostic_Issue_name = models.CharField(max_length=64)
+    diagnostic_case_name = models.CharField(max_length=64)
 
     # Description of the problem this solution addresses
     problem_description = models.CharField(max_length=128)
@@ -159,7 +159,7 @@ class AssertionMeta(models.Model):
         if not loaded_assertion_class:
             return None
 
-        return loaded_assertion_class(self)
+        return loaded_assertion_class
 
     def __unicode__(self):
         return u'{0}::{1}'.format(self.display_name, self.assertion_load_path)
