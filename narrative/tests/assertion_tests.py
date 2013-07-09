@@ -191,7 +191,7 @@ class Test_diganose(TestCase):
             solution_count + 1,
             'One more solution should have been created')
 
-        last_solution = Solution.objects.order_by('-id')[0]
+        last_solution = Solution.objects.filter(issue__status=IssueStatusType.SolutionApplied).order_by('-id')[0]
         last_solution.load_plan()
 
         self.assertEqual(

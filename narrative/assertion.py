@@ -75,6 +75,8 @@ class Assertion(object):
             solution.save_plan()
             solution.save()
             self.execute_solution(solution)
+            solution.issue.status = IssueStatusType.SolutionApplied
+            solution.issue.save()
 
             return True
 
