@@ -1,3 +1,4 @@
+import datetime
 import json
 
 from django.conf import settings
@@ -5,7 +6,7 @@ from django.contrib.auth.models import Group, User
 from django.core import mail
 from django.test import TestCase
 
-from ..assertion import Assertion
+from ..assertion import Assertion, Diagnosis
 from ..models import Solution, AssertionMeta, Issue, IssueStatusType
 
 
@@ -21,7 +22,12 @@ class AssertionTests(TestCase):
         self.email_called = False
         self.deferred_kwargs = None
 
+        self.mock_utc_now = datetime.datetime(2013, 7, 9, 12, 0, 0)
+
         class TestAssertion(Assertion):
+            def get_utc_now(self_):
+                return self.mock_utc_now
+
             def check(self_):
                 pass
 
@@ -48,9 +54,6 @@ class AssertionTests(TestCase):
             display_name='Mock assertion', assertion_load_path='foo.bar', enabled=True)
 
         self.assertion = TestAssertion(self.assertion_meta)
-
-        self.issue = Issue(failed_assertion=self.assertion_meta)
-        self.issue.save()
 
         # Some solutions
         self.valid_solution = Solution(plan=[
@@ -87,6 +90,10 @@ class AssertionTests(TestCase):
 
     def test_execute_solution(self):
         # Verify the solution was executed
+        self.issue = Issue(failed_assertion=self.assertion_meta)
+        self.issue.save()
+
+        self.valid_solution.issue = self.issue
         self.assertion.execute_solution(self.valid_solution)
 
         # Verify that the steps were executed appropriately
@@ -97,6 +104,12 @@ class AssertionTests(TestCase):
         self.assertEqual(
             self.deferred_kwargs, {'subject': 'copacetic', 'hints': ['it is all good']},
             'Verifying that the appropriate kwargs were used in executing the step')
+
+        # Verify that the enacted time is updated
+        self.assertEqual(
+            Solution.objects.get(id=self.valid_solution.id).enacted,
+            self.mock_utc_now,
+            'Enacted time should have been updated to time of saving')
 
 
 class Test_diganose(TestCase):
@@ -111,8 +124,8 @@ class Test_diganose(TestCase):
         self.deferred_kwargs = None
 
         # Values returned by stubbed methods
-        self.mock_solution_1 = None
-        self.mock_solution_2 = None
+        self.mock_diagnosis_1 = None
+        self.mock_diagnosis_2 = None
 
         class TestAssertion(Assertion):
             def check(self_):
@@ -124,11 +137,11 @@ class Test_diganose(TestCase):
 
             def diagnostic_case_test_1(self_, *args, **kwargs):
                 self.diagnostic_case_test_1_called = True
-                return self.mock_solution_1
+                return self.mock_diagnosis_1
 
             def diagnostic_case_test_2(self_, *args, **kwargs):
                 self.diagnostic_case_test_2_called = True
-                return self.mock_solution_2
+                return self.mock_diagnosis_2
 
             def do_defer_multiple_solutions_to_admins(self_, solutions):
                 self.deferred_multiple_solutions = True
@@ -167,8 +180,8 @@ class Test_diganose(TestCase):
     def test_diagnose_with_no_solution(self):
         # Test that if no diagnostic case returns a solution, none are executed, and
         #   the admins are notified.
-        self.mock_solution_1 = None
-        self.mock_solution_2 = None
+        self.mock_diagnosis_1 = None
+        self.mock_diagnosis_2 = None
 
         self.assertion.diagnose(**{'current_issue': self.issue})
 
@@ -178,8 +191,8 @@ class Test_diganose(TestCase):
     def test_diagnose_with_one_solution(self):
         # Test that if only one diagnostic case returns a solution, it is saved in the database,
         # and it is executed
-        self.mock_solution_1 = self.valid_solution
-        self.mock_solution_2 = None
+        self.mock_diagnosis_1 = Diagnosis(Diagnosis.Type.EXEC, self.valid_solution)
+        self.mock_diagnosis_2 = None
 
         solution_count = Solution.objects.all().count()
 
@@ -212,8 +225,8 @@ class Test_diganose(TestCase):
         #   created and the admins are notified.
         self.execute_solution_called = False
 
-        self.mock_solution_1 = self.valid_solution
-        self.mock_solution_2 = self.valid_solution_2
+        self.mock_diagnosis_1 = Diagnosis(Diagnosis.Type.EXEC, self.valid_solution)
+        self.mock_diagnosis_2 = Diagnosis(Diagnosis.Type.EXEC, self.valid_solution_2)
 
         self.assertion.diagnose(**{'current_issue': self.issue})
 
