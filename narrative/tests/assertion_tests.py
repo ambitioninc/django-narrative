@@ -254,7 +254,7 @@ class AssertionTests(TestCase):
             'post_recovery_clean_up should have been called')
 
 
-class DoTests(TestCase):
+class DoMethodTests(TestCase):
     """
     Tests for the various 'do_*' methods that come with
     the Assertion class.
