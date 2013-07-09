@@ -21,10 +21,6 @@ class AssertionTests(TestCase):
         self.email_called = False
         self.deferred_kwargs = None
 
-        # Values returned by stubbed methods
-        self.mock_solution_1 = None
-        self.mock_solution_2 = None
-
         class TestAssertion(Assertion):
             def check(self_):
                 pass
