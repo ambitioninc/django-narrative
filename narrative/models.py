@@ -55,6 +55,16 @@ class IssueStatusType(StatusType):
     )
 
 
+class IssueResolutionStepActionType(StatusType):
+    Exec = 0    # Perform some actions
+    Pass = 1    # Pass and don't do anything right now
+
+    types = (
+        (Exec, 'Exec'),
+        (Pass, 'Pass'),
+    )
+
+
 class Event(models.Model):
     # When did the event occur
     timestamp = models.DateTimeField(auto_now_add=True)
@@ -102,34 +112,6 @@ def log_event(status_name, origin, event_name, event_operand=None, thread_id=Non
     return evt
 
 
-class Solution(models.Model):
-    def __init__(self, *args, **kwargs):
-        self.plan = kwargs.pop('plan', [])
-        self.save_plan()
-
-        super(Solution, self).__init__(*args, **kwargs)
-
-    issue = models.ForeignKey('Issue')
-
-    # What was the name of the diagnostic method that generated this solution?
-    diagnostic_case_name = models.CharField(max_length=64)
-
-    # Description of the problem this solution addresses
-    problem_description = models.CharField(max_length=128)
-
-    # The steps (stored as json) for this solution
-    plan_json = models.TextField()
-
-    # Time in which the solution was enacted
-    enacted = models.DateTimeField(null=True, blank=True)
-
-    def load_plan(self):
-        self.plan = json.loads(self.plan_json)
-
-    def save_plan(self):
-        self.plan_json = json.dumps(self.plan)
-
-
 class AssertionMeta(models.Model):
     """
     Used for storing meta information about a specific assertion.
@@ -165,6 +147,69 @@ class AssertionMeta(models.Model):
         return u'{0}::{1}'.format(self.display_name, self.assertion_load_path)
 
 
+class Solution(models.Model):
+    def __init__(self, *args, **kwargs):
+        self.plan = kwargs.pop('plan', [])
+        self.save_plan()
+
+        super(Solution, self).__init__(*args, **kwargs)
+
+    # What was the name of the diagnostic method that generated this solution?
+    diagnostic_case_name = models.CharField(max_length=64)
+
+    # Description of the problem this solution addresses
+    problem_description = models.CharField(max_length=128)
+
+    # The steps (stored as json) for this solution
+    plan_json = models.TextField()
+
+    # Time in which the solution was enacted
+    enacted = models.DateTimeField(null=True, blank=True)
+
+    def load_plan(self):
+        self.plan = json.loads(self.plan_json)
+
+    def save_plan(self):
+        self.plan_json = json.dumps(self.plan)
+
+    def save(self, *args, **kwargs):
+        self.save_plan()
+
+        super(Solution, self).save(*args, **kwargs)
+
+    def __unicode__(self):
+        return u'Solution - Diagnostic case name: {0}, description: {1}'.format(
+            self.diagnostic_case_name, self.problem_description)
+
+    def __str__(self):
+        return 'Solution - Diagnostic case name: {0}, description: {1}'.format(
+            self.diagnostic_case_name, self.problem_description)
+
+    def explain(self, tabs=''):
+        # Aggregate all of the plan steps into a nice human readable format
+        plan_explanation = []
+
+        for step in self.plan:
+            op_name, kwargs = step
+            keyword_list = ['{0}={1}'.format(k, v) for k, v in kwargs.items()]
+            plan_explanation.append('{0}({1})'.format(op_name, ', '.join(keyword_list)))
+
+        step_separator = ('\n{0}    '.format(tabs))
+
+        plan_explanation_string = step_separator + step_separator.join(plan_explanation)
+
+        explanation = [
+            'Diagnostic case name: {0}'.format(self.diagnostic_case_name),
+            'Problem Description: {0}'.format(self.problem_description),
+            'Enacted: {0}'.format(self.enacted or 'Never'),
+            'Plan: {0}'.format(plan_explanation_string),
+        ]
+
+        separator = '\n{0}'.format(tabs)
+
+        return separator.join(explanation)
+
+
 class Issue(models.Model):
     """
     Assertions can find problems in the system; these
@@ -180,7 +225,60 @@ class Issue(models.Model):
     resolved_timestamp = models.DateTimeField(null=True, blank=True)
 
     def __unicode__(self):
-        return u'Issue:{0}'.format(self.failed_assertion.display_name)
+        return u'Issue - {0} ({1})'.format(
+            self.failed_assertion.display_name, IssueStatusType.status_by_id(self.status))
+
+    def __str__(self):
+        return 'Issue - {0} ({1})'.format(
+            self.failed_assertion.display_name, IssueStatusType.status_by_id(self.status))
+
+    def explain(self, tabs=''):
+        resolution_separator = '\n{0}    '.format(tabs)
+        resolution_steps = resolution_separator + resolution_separator.join(
+            [step.explain(tabs + '    ') for step in self.issueresolutionstep_set.order_by('created')])
+
+        explanation = [
+            'Failed Assertion: {0}'.format(self.failed_assertion.display_name),
+            'Status: {0}'.format(IssueStatusType.status_by_id(self.status)),
+            'Created: {0}'.format(self.created_timestamp),
+            'Resolved: {0}'.format(self.resolved_timestamp or 'Never'),
+            'Resolution Steps: {0}'.format(resolution_steps),
+        ]
+
+        return '\n'.join(explanation)
+
+
+class IssueResolutionStep(models.Model):
+    """
+    Track steps taken to resolve an issue.
+    """
+    issue = models.ForeignKey(Issue)
+    solution = models.ForeignKey(Solution, null=True, blank=True)
+
+    action_type = models.IntegerField(
+        choices=IssueResolutionStepActionType.types, default=IssueResolutionStepActionType.Exec)
+
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __unicode__(self):
+        return u'Action: {0}, Solution: {1}'.format(
+            IssueResolutionStepActionType.status_by_id(self.action_type), self.solution)
+
+    def __str__(self):
+        return 'Action: {0}, Solution: {1}'.format(
+            IssueResolutionStepActionType.status_by_id(self.action_type), self.solution)
+
+    def explain(self, tabs=''):
+        self.solution.load_plan()
+        solution_explanation = self.solution.explain(tabs + '    ') if self.solution else 'None'
+        explanation = [
+            'Action Type: {0}'.format(IssueResolutionStepActionType.status_by_id(self.action_type)),
+            'Solution: {0}'.format(solution_explanation),
+        ]
+
+        separator = '\n{0}'.format(tabs)
+
+        return separator.join(explanation)
 
 
 class ModelIssue(Issue):

@@ -6,8 +6,8 @@ from django.contrib.auth.models import Group, User
 from django.core import mail
 from django.test import TestCase
 
-from ..assertion import Assertion, Diagnosis
-from ..models import Solution, AssertionMeta, Issue, IssueStatusType
+from ..assertion import Assertion
+from ..models import Solution, AssertionMeta, Issue, IssueResolutionStep, IssueStatusType
 
 
 class AssertionTests(TestCase):
@@ -56,20 +56,18 @@ class AssertionTests(TestCase):
         self.assertion = TestAssertion(self.assertion_meta)
 
         # Some solutions
-        self.valid_solution = Solution(plan=[
+        self.valid_solution_plan = [
             ['email', {'adddress': 'josh.marlow@akimbo.io', 'subject': 'fake subject', 'message': 'fake message'}],
             ['defer_to_admins', {'subject': 'copacetic', 'hints': ['it is all good']}],
-        ])
-        self.valid_solution.save_plan()
+        ]
 
-        self.valid_solution_2 = Solution(plan=[
+        self.valid_solution_2_json = [
             ['email', {'address': 'wesley.kendall@akimbo.io', 'subject': 'POW', 'message': 'fake message'}],
-        ])
-        self.valid_solution_2.save_plan()
+        ]
 
-        self.in_valid_solution = Solution(plan=[
+        self.in_valid_solution_plan = [
             ('format', {'drive': 'C'}),
-        ])
+        ]
 
     def test_get_diagnostic_cases(self):
         self.assertEqual(
@@ -82,10 +80,12 @@ class AssertionTests(TestCase):
         Verify that a valid solution can be validated,
         but an invalid one cannot be.
         """
-        self.assertTrue(self.assertion.validate_solution(self.valid_solution), 'Validating valid solution')
+        valid_solution = Solution(plan=self.valid_solution_plan)
+        self.assertTrue(self.assertion.validate_solution(valid_solution), 'Validating valid solution')
         self.assertFalse(self.defer_to_admins_called, 'Verifying the admins were not bothered by a success')
 
-        self.assertFalse(self.assertion.validate_solution(self.in_valid_solution), 'Validating invalid solution')
+        in_valid_solution = Solution(plan=self.in_valid_solution_plan)
+        self.assertFalse(self.assertion.validate_solution(in_valid_solution), 'Validating invalid solution')
         self.assertTrue(self.defer_to_admins_called, 'Verifying the admins were notified of an invalid solution')
 
     def test_execute_solution(self):
@@ -93,8 +93,8 @@ class AssertionTests(TestCase):
         self.issue = Issue(failed_assertion=self.assertion_meta)
         self.issue.save()
 
-        self.valid_solution.issue = self.issue
-        self.assertion.execute_solution(self.valid_solution)
+        valid_solution = Solution(plan=self.valid_solution_plan)
+        self.assertion.execute_solution(valid_solution)
 
         # Verify that the steps were executed appropriately
         self.assertTrue(self.email_called, 'Verifies that the appropriate person was emailed')
@@ -107,12 +107,12 @@ class AssertionTests(TestCase):
 
         # Verify that the enacted time is updated
         self.assertEqual(
-            Solution.objects.get(id=self.valid_solution.id).enacted,
+            Solution.objects.get(id=valid_solution.id).enacted,
             self.mock_utc_now,
             'Enacted time should have been updated to time of saving')
 
 
-class Test_diganose(TestCase):
+class Test_diagnose(TestCase):
     def setUp(self):
         # Fields set by stubbed methods
         self.diagnostic_case_test_1_called = False
@@ -124,8 +124,8 @@ class Test_diganose(TestCase):
         self.deferred_kwargs = None
 
         # Values returned by stubbed methods
-        self.mock_diagnosis_1 = None
-        self.mock_diagnosis_2 = None
+        self.mock_resolution_step_1 = None
+        self.mock_resolution_step_2 = None
 
         class TestAssertion(Assertion):
             def check(self_):
@@ -137,11 +137,11 @@ class Test_diganose(TestCase):
 
             def diagnostic_case_test_1(self_, current_issue, *args, **kwargs):
                 self.diagnostic_case_test_1_called = True
-                return self.mock_diagnosis_1
+                return self.mock_resolution_step_1
 
             def diagnostic_case_test_2(self_, current_issue, *args, **kwargs):
                 self.diagnostic_case_test_2_called = True
-                return self.mock_diagnosis_2
+                return self.mock_resolution_step_2
 
             def do_defer_multiple_solutions_to_admins(self_, solutions):
                 self.deferred_multiple_solutions = True
@@ -158,30 +158,32 @@ class Test_diganose(TestCase):
 
         self.assertion = TestAssertion(self.assertion_meta)
 
-        self.issue = Issue(failed_assertion=self.assertion_meta)
-        self.issue.save()
+        self.issue = Issue.objects.create(failed_assertion=self.assertion_meta)
 
         # Some solutions
-        self.valid_solution = Solution(issue=self.issue, plan=[
+        self.valid_solution_plan = [
             ['email', {'adddress': 'josh.marlow@akimbo.io', 'subject': 'fake subject', 'message': 'fake message'}],
             ['defer_to_admins', {'subject': 'copacetic', 'hints': ['it is all good']}],
-        ])
-        self.valid_solution.save_plan()
+        ]
 
-        self.valid_solution_2 = Solution(issue=self.issue, plan=[
+        self.valid_solution_plan_2 = [
             ['email', {'address': 'wesley.kendall@akimbo.io', 'subject': 'POW', 'message': 'fake message'}],
-        ])
-        self.valid_solution_2.save_plan()
+        ]
 
-        self.in_valid_solution = Solution(plan=[
+        self.in_valid_solution_plan = [
             ('format', {'drive': 'C'}),
-        ])
+        ]
+
+    def tearDown(self):
+        IssueResolutionStep.objects.all().delete()
+        Issue.objects.all().delete()
+        Solution.objects.all().delete()
 
     def test_diagnose_with_no_solution(self):
         # Test that if no diagnostic case returns a solution, none are executed, and
         #   the admins are notified.
-        self.mock_diagnosis_1 = None
-        self.mock_diagnosis_2 = None
+        self.mock_resolution_step_1 = None
+        self.mock_resolution_step_2 = None
 
         self.assertion.diagnose(**{'current_issue': self.issue})
 
@@ -191,8 +193,10 @@ class Test_diganose(TestCase):
     def test_diagnose_with_one_solution(self):
         # Test that if only one diagnostic case returns a solution, it is saved in the database,
         # and it is executed
-        self.mock_diagnosis_1 = Diagnosis(Diagnosis.Type.EXEC, self.valid_solution)
-        self.mock_diagnosis_2 = None
+        soln_1 = Solution(plan=self.valid_solution_plan)
+        self.mock_resolution_step_1 = IssueResolutionStep(
+            issue=self.issue, solution=soln_1)
+        self.mock_resolution_step_2 = None
 
         solution_count = Solution.objects.all().count()
 
@@ -212,12 +216,11 @@ class Test_diganose(TestCase):
             IssueStatusType.SolutionApplied,
             'Issue status should have been updated to SolutionApplied')
 
-        last_solution = Solution.objects.get(issue=issue_reloaded)
-        last_solution.load_plan()
+        plan_set = set([isr.solution.plan_json for isr in issue_reloaded.issueresolutionstep_set.all()])
 
         self.assertEqual(
-            last_solution.plan,
-            self.valid_solution.plan,
+            plan_set,
+            set([soln_1.plan_json]),
             'Solution Plan stored in the database should match the newly created solution')
 
     def test_diagnose_with_multiple_solutions(self):
@@ -225,8 +228,13 @@ class Test_diganose(TestCase):
         #   created and the admins are notified.
         self.execute_solution_called = False
 
-        self.mock_diagnosis_1 = Diagnosis(Diagnosis.Type.EXEC, self.valid_solution)
-        self.mock_diagnosis_2 = Diagnosis(Diagnosis.Type.EXEC, self.valid_solution_2)
+        soln_1 = Solution(plan=self.valid_solution_plan)
+        soln_2 = Solution(plan=self.valid_solution_plan_2)
+
+        self.mock_resolution_step_1 = IssueResolutionStep(
+            issue=self.issue, solution=soln_1)
+        self.mock_resolution_step_2 = IssueResolutionStep(
+            issue=self.issue, solution=soln_2)
 
         self.assertion.diagnose(**{'current_issue': self.issue})
 
@@ -234,26 +242,26 @@ class Test_diganose(TestCase):
         self.assertTrue(
             self.deferred_multiple_solutions, 'Verifies that the admins were contacted about the multiple solutions')
 
+        # Reload the issue to check that it's state has changed
         issue_reloaded = Issue.objects.get(id=self.issue.id)
 
-        # Reload the issue to check that it's state has changed
         self.assertEqual(
             issue_reloaded.status,
             IssueStatusType.Impasse,
             'Issue status should have been updated to Impasse')
 
-        solution_set = Solution.objects.filter(issue=issue_reloaded)
+        solution_set = Solution.objects.filter(issueresolutionstep__issue=self.issue)
 
         self.assertEqual(
             len(solution_set),
             2,
             'Expected two valid solutions')
 
-        plan_set = set([soln.plan_json for soln in solution_set])
+        plan_set = set([isr.solution.plan_json for isr in issue_reloaded.issueresolutionstep_set.all()])
 
         self.assertEqual(
             plan_set,
-            set([self.valid_solution.plan_json, self.valid_solution_2.plan_json]),
+            set([soln_1.plan_json, soln_2.plan_json]),
             'Solution plans stored in the database should match the newly created solution')
 
 

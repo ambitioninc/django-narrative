@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.mail import EmailMultiAlternatives
 
-from .models import Issue, ModelIssue, IssueStatusType
+from .models import Issue, ModelIssue, IssueStatusType, IssueResolutionStepActionType
 
 
 ### misc utility methods ###
@@ -19,19 +19,6 @@ def blast_email(subject, message_txt, message_html, recipients):
         email.attach_alternative(message_html, 'text/html')
 
     email.send()
-
-
-class Diagnosis(object):
-    class Type:
-        EXEC = 0                # A diagnosis has been found
-        PASS = 1                # Pass on this issue for now
-
-    def __init__(self, type_, soln):
-        self.type = type_
-        self.solution = soln
-
-    def __unicode__(self):
-        return u'{0}:{1}'.format(self.type, self.solution)
 
 
 class Assertion(object):
@@ -63,41 +50,50 @@ class Assertion(object):
         """
         current_issue = kwargs.pop('current_issue')
         # Get all diagnostic results
-        diagnostic_results = [
+        resolution_steps = [
             getattr(self, diagnostic_case_name)(current_issue, *args, **kwargs)
             for diagnostic_case_name in self.diagnostic_cases
         ]
 
         # Filter out any 'None' results
-        diagnostic_results = filter(bool, diagnostic_results)
+        resolution_steps = filter(bool, resolution_steps)
 
-        for dr in diagnostic_results:
-            if dr.type == Diagnosis.Type.EXEC:
-                dr.solution.issue = current_issue
+        # Save all of the proposed resolution steps
+        for irs in resolution_steps:
+            if irs.solution:
+                # Now this is pretty weird; the solution is an unsaved model;
+                # I don't understand why, but after we save he solution,
+                # we need to re-reference it before we save the thing pointing
+                # to the solution.
+                # Is this a bug in Django or am I doing something incredibly wrong and subtle?
+                soln = irs.solution
+                soln.save()
+                irs.solution = soln
 
-        if len(diagnostic_results) == 0:
+            irs.issue = current_issue
+            irs.save()
+
+        if len(resolution_steps) == 0:
             # No solution found, notify the admins
             message = 'Failed Assertion: {0} ({1}) has no proposed solutions'.format(
                 self.assertion_meta.display_name, self.__class__.__name__)
 
             self.do_defer_to_admins('Failed assertion; No solutions found', message)
-        elif len(diagnostic_results) > 1:
+        elif len(resolution_steps) > 1:
             # Multiple solutions found; record them and, notify the admins
-            for dr in diagnostic_results:
-                dr.solution.save_plan()
-                dr.solution.save()
+            current_issue.status = IssueStatusType.Impasse
+            current_issue.save()
 
-            issue = diagnostic_results[0].solution.issue
-            issue.status = IssueStatusType.Impasse
-            issue.save()
-
-            self.do_defer_multiple_solutions_to_admins(diagnostic_results)
+            self.do_defer_multiple_solutions_to_admins(resolution_steps)
         else:
-            # Found a solution; save it in the database and apply it (unless it's a PASS)
-            diagnosis = diagnostic_results[0]
+            # Found a single proposed resolution step; if the step is to do something, do it
+            diagnosis = resolution_steps[0]
 
-            if Diagnosis.Type.EXEC == diagnosis.type:
+            if IssueResolutionStepActionType.Exec == diagnosis.action_type:
                 self.execute_solution(diagnosis.solution)
+
+            current_issue.status = IssueStatusType.SolutionApplied
+            current_issue.save()
 
     def post_recovery_cleanup(self):
         """
@@ -193,12 +189,8 @@ class Assertion(object):
 
                 getattr(self, self.get_action_handler(action))(**kwargs)
 
-            solution.save_plan()
             solution.enacted = self.get_utc_now()
             solution.save()
-
-            solution.issue.status = IssueStatusType.SolutionApplied
-            solution.issue.save()
 
     ### do_* methods for executing particular operations such as notifying individuals ###
     def do_defer_to_admins(self, subject, message, message_html=None):
