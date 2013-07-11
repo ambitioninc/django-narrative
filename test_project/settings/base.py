@@ -128,6 +128,7 @@ INSTALLED_APPS = (
     'django_nose',
     'south',
     'test_project',
+    'django_extensions'
 )
 
 # A sample logging configuration. The only tangible logging
