@@ -8,7 +8,7 @@ from django.test import TestCase
 
 from ..assertion import Assertion
 from ..models import (Solution, AssertionMeta, Issue, IssueResolutionStep,
-    IssueStatusType, IssueResolutionStepActionType)
+                      IssueStatusType, IssueResolutionStepActionType)
 
 
 class AssertionTests(TestCase):
