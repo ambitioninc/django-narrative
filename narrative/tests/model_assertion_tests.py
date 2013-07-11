@@ -1,7 +1,9 @@
+from django.conf import settings
+from django.contrib.auth.models import User, Group
 from django.test import TestCase
 
 from ..assertion import ModelAssertion
-from ..models import AssertionMeta, ModelIssue, IssueStatusType
+from ..models import AssertionMeta, ModelIssue, IssueStatusType, IssueResolutionStep, IssueResolutionStepActionType
 
 from test_project.models import TestModel
 
@@ -24,6 +26,13 @@ class ModelAssertionTests(TestCase):
 
             def diagnose(self_, *args, **kwargs):
                 self.diagnosed_records.append(kwargs.pop('record'))
+                super(TestModelAssertion, self_).diagnose(*args, **kwargs)
+
+            def diagnostic_case_pass(self_, *args, **kwargs):
+                return IssueResolutionStep(action_type=IssueResolutionStepActionType.PASS)
+
+            def diagnostic_case_pass_2(self_, *args, **kwargs):
+                return IssueResolutionStep(action_type=IssueResolutionStepActionType.PASS)
 
             def post_recovery_cleanup(self_, *args, **kwargs):
                 self.post_recovery_records.append(kwargs.pop('record'))
@@ -32,6 +41,17 @@ class ModelAssertionTests(TestCase):
             display_name='Mock model assertion', assertion_load_path='foo.bar', enabled=True)
 
         self.assertion = TestModelAssertion(self.assertion_meta)
+
+        # Set up the narrative admin group
+        admin_group, created = Group.objects.get_or_create(
+            name=settings.NARRATIVE_ADMIN_GROUP_NAME)
+        self.test_user = User.objects.create(
+            username='test_user', password='test_user', email='test_user@example.com')
+        self.test_user_2 = User.objects.create(
+            username='test_user_2', password='test_user_2', email='test_user_2@example.com')
+
+        admin_group.user_set.add(self.test_user)
+        admin_group.user_set.add(self.test_user_2)
 
     def test_check_and_diagnose(self):
         """
@@ -61,11 +81,19 @@ class ModelAssertionTests(TestCase):
             set(self.failing_models),
             'Models referenced by issues should match the failing models')
 
-        # Verify that all of the model issues are Open
+        # Verify that the proposed IssueResolutionSteps are all PASS
+        issue_resolution_step_list = IssueResolutionStep.objects.all()
+
+        self.assertEqual(
+            set([isr.action_type for isr in issue_resolution_step_list]),
+            set([IssueResolutionStepActionType.PASS]),
+            'Should be all PASS')
+
+        # Verify that all of the model issues are IMPASSE
         self.assertEqual(
             set([model_issue.status for model_issue in model_issue_list]),
-            set([IssueStatusType.OPEN]),
-            'All of the model issues should have an open status')
+            set([IssueStatusType.IMPASSE]),
+            'All of the model issues should have an IMPASSE status')
 
         # Verify all of the model issues reference the test assertion
         self.assertEqual(
