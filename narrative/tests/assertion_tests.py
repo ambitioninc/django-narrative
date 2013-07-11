@@ -7,7 +7,8 @@ from django.core import mail
 from django.test import TestCase
 
 from ..assertion import Assertion
-from ..models import Solution, AssertionMeta, Issue, IssueResolutionStep, IssueStatusType
+from ..models import (Solution, AssertionMeta, Issue, IssueResolutionStep,
+    IssueStatusType, IssueResolutionStepActionType)
 
 
 class AssertionTests(TestCase):
@@ -263,6 +264,50 @@ class Test_diagnose(TestCase):
             plan_set,
             set([soln_1.plan_json, soln_2.plan_json]),
             'Solution plans stored in the database should match the newly created solution')
+
+    def test_diagnose_with_pass(self):
+        """
+        Test that diagnose appropriately handles an IssueResolutionStep
+        with a PASS type.
+        """
+        # Create an issue resolution step with a PASS type
+        soln_1 = Solution(plan=self.valid_solution_plan)
+
+        self.mock_resolution_step_1 = IssueResolutionStep(
+            issue=self.issue, solution=soln_1, action_type=IssueResolutionStepActionType.Pass)
+        self.mock_resolution_step_2 = None
+
+        # Call diagnose
+        self.assertion.diagnose(**{'current_issue': self.issue})
+
+        # Verify that execute_solution was not called
+        self.assertFalse(
+            self.execute_solution_called, 'Execute solution should not have been called on a PASS step')
+
+    def test_diagnose_with_a_solution_and_a_pass(self):
+        """
+        Test that diagnose appropriately handles multiple solutions and a PASS.
+        """
+        # Create an issue resolution step with a PASS type and one
+        # EXEC type
+        soln_1 = Solution(plan=self.valid_solution_plan)
+        soln_2 = Solution(plan=self.valid_solution_plan_2)
+
+        self.mock_resolution_step_1 = IssueResolutionStep(
+            issue=self.issue, solution=soln_1, action_type=IssueResolutionStepActionType.Pass)
+        self.mock_resolution_step_2 = IssueResolutionStep(
+            issue=self.issue, solution=soln_2)
+
+        # Call diagnose
+        self.assertion.diagnose(**{'current_issue': self.issue})
+
+        # Verify that execute_solution was not called
+        self.assertFalse(
+            self.execute_solution_called, 'Execute solution should not have been called on a PASS step')
+
+        # Verify that the multiple resolution steps were deferred
+        self.assertTrue(
+            self.deferred_multiple_solutions, 'Verifies that the admins were contacted about the multiple solutions')
 
 
 class Test_check_and_diagnose(TestCase):
