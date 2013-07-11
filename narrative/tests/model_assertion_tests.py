@@ -64,7 +64,7 @@ class ModelAssertionTests(TestCase):
         # Verify that all of the model issues are Open
         self.assertEqual(
             set([model_issue.status for model_issue in model_issue_list]),
-            set([IssueStatusType.Open]),
+            set([IssueStatusType.OPEN]),
             'All of the model issues should have an open status')
 
         # Verify all of the model issues reference the test assertion
@@ -90,5 +90,5 @@ class ModelAssertionTests(TestCase):
         # Verify that all issues are now marked as resolved
         self.assertEqual(
             set([model_issue.status for model_issue in model_issue_list]),
-            set([IssueStatusType.Resolved]),
+            set([IssueStatusType.RESOLVED]),
             'All of the model issues should now have a Resolved status')

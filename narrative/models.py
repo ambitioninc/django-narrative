@@ -21,47 +21,47 @@ class StatusType(object):
 
 
 class EventStatusType(StatusType):
-    Success = 0
-    Failed = 1
-    InProgress = 2
+    SUCCESS = 0
+    FAILED = 1
+    IN_PROGRESS = 2
 
     types = (
-        (Success, 'Success'),
-        (Failed, 'Failed'),
-        (InProgress, 'InProgress'),
+        (SUCCESS, 'Success'),
+        (FAILED, 'Failed'),
+        (IN_PROGRESS, 'InProgress'),
     )
 
 
 class IssueStatusType(StatusType):
     # An open problem; we've not tried to fix it yet
-    Open = 0
+    OPEN = 0
 
     # We've applied a solution and are waiting to see if it
     # fixes things.
-    SolutionApplied = 1
+    SOLUTION_APPLIED = 1
 
     # At an impasse; don't know how to proceed, so we've
     # contacted some humans to take a lok
-    Impasse = 2
+    IMPASSE = 2
 
     # The issue is fixed and the Issue has been closed
-    Resolved = 3
+    RESOLVED = 3
 
     types = (
-        (Open, 'Open'),
-        (SolutionApplied, 'Solution Applied'),
-        (Impasse, 'Impasse'),
-        (Resolved, 'Resolved'),
+        (OPEN, 'Open'),
+        (SOLUTION_APPLIED, 'Solution Applied'),
+        (IMPASSE, 'Impasse'),
+        (RESOLVED, 'Resolved'),
     )
 
 
 class IssueResolutionStepActionType(StatusType):
-    Exec = 0    # Perform some actions
-    Pass = 1    # Pass and don't do anything right now
+    EXEC = 0    # Perform some actions
+    PASS = 1    # Pass and don't do anything right now
 
     types = (
-        (Exec, 'Exec'),
-        (Pass, 'Pass'),
+        (EXEC, 'Exec'),
+        (PASS, 'Pass'),
     )
 
 
@@ -82,7 +82,7 @@ class Event(models.Model):
     event_operand_detail = models.CharField(max_length=64, null=True, blank=True)
 
     # Event status
-    status = models.IntegerField(choices=EventStatusType.types, default=EventStatusType.Success)
+    status = models.IntegerField(choices=EventStatusType.types, default=EventStatusType.SUCCESS)
 
     # An ID to tie particular events together
     thread_id = models.CharField(max_length=36, null=True, blank=True)
@@ -219,7 +219,7 @@ class Issue(models.Model):
     failed_assertion = models.ForeignKey(AssertionMeta)
 
     # Status can be open, resolved, etc
-    status = models.IntegerField(choices=IssueStatusType.types, default=IssueStatusType.Open)
+    status = models.IntegerField(choices=IssueStatusType.types, default=IssueStatusType.OPEN)
 
     created_timestamp = models.DateTimeField(auto_now_add=True)
     resolved_timestamp = models.DateTimeField(null=True, blank=True)
@@ -256,7 +256,7 @@ class IssueResolutionStep(models.Model):
     solution = models.ForeignKey(Solution, null=True, blank=True)
 
     action_type = models.IntegerField(
-        choices=IssueResolutionStepActionType.types, default=IssueResolutionStepActionType.Exec)
+        choices=IssueResolutionStepActionType.types, default=IssueResolutionStepActionType.EXEC)
 
     created = models.DateTimeField(auto_now_add=True)
 

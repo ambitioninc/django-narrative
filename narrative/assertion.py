@@ -81,7 +81,7 @@ class Assertion(object):
             self.do_defer_to_admins('Failed assertion; No solutions found', message)
         elif len(resolution_steps) > 1:
             # Multiple solutions found; record them and, notify the admins
-            current_issue.status = IssueStatusType.Impasse
+            current_issue.status = IssueStatusType.IMPASSE
             current_issue.save()
 
             self.do_defer_multiple_solutions_to_admins(resolution_steps)
@@ -89,10 +89,10 @@ class Assertion(object):
             # Found a single proposed resolution step; if the step is to do something, do it
             diagnosis = resolution_steps[0]
 
-            if IssueResolutionStepActionType.Exec == diagnosis.action_type:
+            if IssueResolutionStepActionType.EXEC == diagnosis.action_type:
                 self.execute_solution(diagnosis.solution)
 
-            current_issue.status = IssueStatusType.SolutionApplied
+            current_issue.status = IssueStatusType.SOLUTION_APPLIED
             current_issue.save()
 
     def post_recovery_cleanup(self):
@@ -104,7 +104,7 @@ class Assertion(object):
 
     def build_unresolved_issue_queryset(self, *args, **kwargs):
         return Issue.objects.filter(
-            failed_assertion=self.assertion_meta).exclude(status=IssueStatusType.Resolved)
+            failed_assertion=self.assertion_meta).exclude(status=IssueStatusType.RESOLVED)
 
     def create_issue(self, *args, **kwargs):
         return Issue.objects.create(
@@ -122,7 +122,7 @@ class Assertion(object):
             if unresolved_issue_queryset.exists():
                 # This assertion just started passing.
                 # Close any open issues and do any needed clean up.
-                unresolved_issue_queryset.update(status=IssueStatusType.Resolved)
+                unresolved_issue_queryset.update(status=IssueStatusType.RESOLVED)
 
                 self.post_recovery_cleanup(*args, **kwargs)
 
@@ -254,7 +254,7 @@ class ModelAssertion(Assertion):
         return ModelIssue.objects.filter(
             failed_assertion=self.assertion_meta,
             model_type__model=record.__class__.__name__.lower(),
-            model_id=record.id).exclude(status=IssueStatusType.Resolved)
+            model_id=record.id).exclude(status=IssueStatusType.RESOLVED)
 
     def create_issue(self, *args, **kwargs):
         """

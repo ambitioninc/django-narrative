@@ -214,7 +214,7 @@ class Test_diagnose(TestCase):
         # Reload the issue to check that it's state has changed
         self.assertEqual(
             issue_reloaded.status,
-            IssueStatusType.SolutionApplied,
+            IssueStatusType.SOLUTION_APPLIED,
             'Issue status should have been updated to SolutionApplied')
 
         plan_set = set([isr.solution.plan_json for isr in issue_reloaded.issueresolutionstep_set.all()])
@@ -248,7 +248,7 @@ class Test_diagnose(TestCase):
 
         self.assertEqual(
             issue_reloaded.status,
-            IssueStatusType.Impasse,
+            IssueStatusType.IMPASSE,
             'Issue status should have been updated to Impasse')
 
         solution_set = Solution.objects.filter(issueresolutionstep__issue=self.issue)
@@ -274,7 +274,7 @@ class Test_diagnose(TestCase):
         soln_1 = Solution(plan=self.valid_solution_plan)
 
         self.mock_resolution_step_1 = IssueResolutionStep(
-            issue=self.issue, solution=soln_1, action_type=IssueResolutionStepActionType.Pass)
+            issue=self.issue, solution=soln_1, action_type=IssueResolutionStepActionType.PASS)
         self.mock_resolution_step_2 = None
 
         # Call diagnose
@@ -294,7 +294,7 @@ class Test_diagnose(TestCase):
         soln_2 = Solution(plan=self.valid_solution_plan_2)
 
         self.mock_resolution_step_1 = IssueResolutionStep(
-            issue=self.issue, solution=soln_1, action_type=IssueResolutionStepActionType.Pass)
+            issue=self.issue, solution=soln_1, action_type=IssueResolutionStepActionType.PASS)
         self.mock_resolution_step_2 = IssueResolutionStep(
             issue=self.issue, solution=soln_2)
 
@@ -384,7 +384,7 @@ class Test_check_and_diagnose(TestCase):
 
         open_issue_count = Issue.objects.filter(
             failed_assertion=self.assertion.assertion_meta,
-            status=IssueStatusType.Open).count()
+            status=IssueStatusType.OPEN).count()
 
         self.assertEqual(
             Issue.objects.all().count(),
@@ -400,7 +400,7 @@ class Test_check_and_diagnose(TestCase):
 
     def test_check_and_diagnose_with_recovered_check(self):
         # Verify that a failed assertion does not create a new Issue if one already exist
-        test_issue = Issue.objects.create(failed_assertion=self.assertion_meta, status=IssueStatusType.Open)
+        test_issue = Issue.objects.create(failed_assertion=self.assertion_meta, status=IssueStatusType.OPEN)
 
         self.post_recovery_cleanup_called = False
 
@@ -428,7 +428,7 @@ class Test_check_and_diagnose(TestCase):
 
         self.assertEqual(
             test_issue.status,
-            IssueStatusType.Resolved,
+            IssueStatusType.RESOLVED,
             'Issue should have been resolved')
 
         self.assertTrue(
