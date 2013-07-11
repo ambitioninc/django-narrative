@@ -269,8 +269,12 @@ class IssueResolutionStep(models.Model):
             IssueResolutionStepActionType.status_by_id(self.action_type), self.solution)
 
     def explain(self, tabs=''):
-        self.solution.load_plan()
-        solution_explanation = self.solution.explain(tabs + '    ') if self.solution else 'None'
+        if self.solution:
+            self.solution.load_plan()
+            solution_explanation = self.solution.explain(tabs + '    ')
+        else:
+            solution_explanation = 'None'
+
         explanation = [
             'Action Type: {0}'.format(IssueResolutionStepActionType.status_by_id(self.action_type)),
             'Solution: {0}'.format(solution_explanation),
