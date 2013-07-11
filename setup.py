@@ -2,9 +2,10 @@ from distutils.core import setup
 
 setup(
     name='narrative',
-    version='0.2.3',
+    version='0.2.4',
     packages=[
         'narrative',
+        'narrative.migrations',
         'narrative.management',
         'narrative.management.commands',
     ],
