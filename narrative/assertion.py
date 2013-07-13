@@ -48,10 +48,10 @@ class Assertion(object):
         If there are no solutions found, notify someone.
         If one solution is found, apply it.
         """
-        current_issue = kwargs.pop('current_issue')
+        current_issue = kwargs['current_issue']
         # Get all diagnostic results
         resolution_steps = [
-            getattr(self, diagnostic_case_name)(current_issue, *args, **kwargs)
+            getattr(self, diagnostic_case_name)(*args, **kwargs)
             for diagnostic_case_name in self.diagnostic_cases
         ]
 
