@@ -247,6 +247,13 @@ class Issue(models.Model):
 
         return '\n'.join(explanation)
 
+    def steps_matching_solution(self, solution):
+        """
+        Given an Issue, return the IssueResolutionStep where the solution applied
+        matches the provided solution.
+        """
+        return filter(lambda isr: isr.solution and isr.solution == solution, self.issueresolutionstep_set.all())
+
 
 class IssueResolutionStep(models.Model):
     """
@@ -270,7 +277,6 @@ class IssueResolutionStep(models.Model):
 
     def explain(self, tabs=''):
         if self.solution:
-            self.solution.load_plan()
             solution_explanation = self.solution.explain(tabs + '    ')
         else:
             solution_explanation = 'None'
