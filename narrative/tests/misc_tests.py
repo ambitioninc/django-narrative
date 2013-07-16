@@ -43,9 +43,9 @@ class IssueTests(TestCase):
         ])
         test_solution_3.save_plan()
         test_solution_3.save()
-        isr_3 = IssueResolutionStep.objects.create(solution=test_solution_3, issue=issue)
+        IssueResolutionStep.objects.create(solution=test_solution_3, issue=issue)
 
-        isr_4 = IssueResolutionStep.objects.create(action_type=IssueResolutionStepActionType.PASS, issue=issue)
+        IssueResolutionStep.objects.create(action_type=IssueResolutionStepActionType.PASS, issue=issue)
 
         # Example plan to match
         target_solution = Solution.objects.create(plan=[
