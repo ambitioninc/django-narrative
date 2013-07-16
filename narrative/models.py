@@ -172,11 +172,6 @@ class Solution(models.Model):
     def save_plan(self):
         self.plan_json = json.dumps(self.plan)
 
-    def save(self, *args, **kwargs):
-        self.save_plan()
-
-        super(Solution, self).save(*args, **kwargs)
-
     def __unicode__(self):
         return u'Solution - Diagnostic case name: {0}, description: {1}'.format(
             self.diagnostic_case_name, self.problem_description)
@@ -251,8 +246,23 @@ class Issue(models.Model):
         """
         Given an Issue, return the IssueResolutionStep where the solution applied
         matches the provided solution.
+
+        The match is in terms of matching operations; not neccesarily the arguments passed.
         """
-        return filter(lambda isr: isr.solution and isr.solution == solution, self.issueresolutionstep_set.all())
+        def get_step_operations(solution):
+            return set(map(lambda step: step[0], solution.plan))
+
+        target_solution_steps = get_step_operations(solution)
+
+        matching_steps = []
+
+        for step in self.issueresolutionstep_set.all():
+            if step.solution:
+                step.solution.load_plan()
+                if get_step_operations(step.solution) == target_solution_steps:
+                    matching_steps.append(step)
+
+        return matching_steps
 
 
 class IssueResolutionStep(models.Model):
