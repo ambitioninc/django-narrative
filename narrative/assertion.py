@@ -2,6 +2,8 @@ import abc
 import copy
 import datetime
 
+from pytz import utc as utc_tz
+
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.mail import EmailMultiAlternatives
@@ -182,7 +184,7 @@ class Assertion(object):
             return True
 
     def get_utc_now(self):
-        return datetime.datetime.utcnow()
+        return utc_tz.localize(datetime.datetime.utcnow())
 
     def execute_solution(self, solution):
         """
