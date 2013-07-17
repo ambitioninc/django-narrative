@@ -5,6 +5,7 @@ import datetime
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 
 from .models import Issue, ModelIssue, IssueStatusType, ResolutionStepActionType
 
@@ -60,10 +61,20 @@ class Assertion(object):
 
         if len(resolution_steps) == 0:
             # No solution found, notify the admins
-            message = 'Failed Assertion: {0} ({1}) has no proposed solutions'.format(
-                self.assertion_meta.display_name, self.__class__.__name__)
+            message_kwargs = {
+                'assertion_name': self.assertion_meta.display_name,
+            }
 
-            self.do_defer_to_admins('Failed assertion; No solutions found', message)
+            message_txt = render_to_string(
+                'no_solution_for_failed_assertion.txt',
+                message_kwargs)
+
+            message_html = render_to_string(
+                'no_solution_for_failed_assertion.html',
+                message_kwargs)
+
+            self.do_defer_to_admins(
+                'Failed assertion; No solutions found', message_txt, message_html)
         elif len(resolution_steps) > 1:
             # Multiple solutions found; record them and, notify the admins
             current_issue.status = IssueStatusType.IMPASSE
@@ -195,18 +206,22 @@ class Assertion(object):
 
         blast_email(subject, message, message_html, admin_emails)
 
-    def do_defer_multiple_solutions_to_admins(self, solutions):
-        subject = 'Impasse: "{0}" has Multiple solutions proposed'.format(
+    def do_defer_multiple_solutions_to_admins(self, resolution_steps):
+        subject = 'Impasse: "{0}" has Multiple resolution steps proposed'.format(
             self.assertion_meta.display_name)
 
-        message = 'Assertion: {0} ({1}) has {2} proposed solutions'.format(
-            self.assertion_meta.display_name, self.__class__.__name__, len(solutions))
+        message_kwargs = {
+            'assertion_name': self.assertion_meta.display_name,
+            'solution_count': len(resolution_steps),
+            'proposed_steps': resolution_steps,
+        }
 
-        hints = map(str, solutions)
-
-        message += '\n'.join(hints)
-
-        message_html = message
+        message = render_to_string(
+            'multiple_solution_impasse_message.txt',
+            message_kwargs)
+        message_html = render_to_string(
+            'multiple_solution_impasse_message.html',
+            message_kwargs)
 
         self.do_defer_to_admins(subject, message, message_html)
 

@@ -530,7 +530,7 @@ class DoMethodTests(TestCase):
 
         self.assertion.do_defer_multiple_solutions_to_admins([valid_solution, valid_solution_2])
 
-        expected_subject = 'Impasse: "Test Assertion" has Multiple solutions proposed'
+        expected_subject = 'Impasse: "Test Assertion" has Multiple resolution steps proposed'
 
         # Verify the emails were sent
         self.assertEqual(
