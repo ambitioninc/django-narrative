@@ -88,10 +88,8 @@ class Assertion(object):
         pass
 
     def build_unresolved_issue_queryset(self, *args, **kwargs):
-        return Issue.objects.filter(
-            failed_assertion=self.assertion_meta).exclude(
-                status=IssueStatusType.RESOLVED).exclude(
-                    status=IssueStatusType.WONT_FIX)
+        filtered_qs = Issue.objects.filter(failed_assertion=self.assertion_meta)
+        return filtered_qs.exclude(status=IssueStatusType.RESOLVED).exclude(status=IssueStatusType.WONT_FIX)
 
     def build_wont_fix_issue_queryset(self, *args, **kwargs):
         return Issue.objects.filter(
@@ -247,12 +245,11 @@ class ModelAssertion(Assertion):
         """
         record = kwargs['record']
 
-        return ModelIssue.objects.filter(
+        filtered_qs = ModelIssue.objects.filter(
             failed_assertion=self.assertion_meta,
             model_type__model=record.__class__.__name__.lower(),
-            model_id=record.id).exclude(
-                status=IssueStatusType.RESOLVED).exclude(
-                    status=IssueStatusType.WONT_FIX)
+            model_id=record.id)
+        return filtered_qs.exclude(status=IssueStatusType.RESOLVED).exclude(status=IssueStatusType.WONT_FIX)
 
     def build_wont_fix_issue_queryset(self, *args, **kwargs):
         """
