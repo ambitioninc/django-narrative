@@ -7,8 +7,8 @@ from django.core import mail
 from django.test import TestCase
 
 from ..assertion import Assertion
-from ..models import (Solution, AssertionMeta, Issue, IssueResolutionStep,
-                      IssueStatusType, IssueResolutionStepActionType)
+from ..models import (Solution, AssertionMeta, Issue, ResolutionStep,
+                      IssueStatusType, ResolutionStepActionType)
 
 
 class AssertionTests(TestCase):
@@ -81,20 +81,20 @@ class AssertionTests(TestCase):
         Verify that a valid solution can be validated,
         but an invalid one cannot be.
         """
-        valid_solution = Solution(plan=self.valid_solution_plan)
+        valid_solution = Solution.objects.create(plan=self.valid_solution_plan)
         self.assertTrue(self.assertion.validate_solution(valid_solution), 'Validating valid solution')
         self.assertFalse(self.defer_to_admins_called, 'Verifying the admins were not bothered by a success')
 
-        in_valid_solution = Solution(plan=self.in_valid_solution_plan)
+        in_valid_solution = Solution.objects.create(plan=self.in_valid_solution_plan)
         self.assertFalse(self.assertion.validate_solution(in_valid_solution), 'Validating invalid solution')
         self.assertTrue(self.defer_to_admins_called, 'Verifying the admins were notified of an invalid solution')
 
     def test_execute_solution(self):
         # Verify the solution was executed
-        self.issue = Issue(failed_assertion=self.assertion_meta)
+        self.issue = Issue.objects.create(failed_assertion=self.assertion_meta)
         self.issue.save()
 
-        valid_solution = Solution(plan=self.valid_solution_plan)
+        valid_solution = Solution.objects.create(plan=self.valid_solution_plan)
         self.assertion.execute_solution(valid_solution)
 
         # Verify that the steps were executed appropriately
@@ -176,7 +176,7 @@ class Test_diagnose(TestCase):
         ]
 
     def tearDown(self):
-        IssueResolutionStep.objects.all().delete()
+        ResolutionStep.objects.all().delete()
         Issue.objects.all().delete()
         Solution.objects.all().delete()
 
@@ -194,12 +194,12 @@ class Test_diagnose(TestCase):
     def test_diagnose_with_one_solution(self):
         # Test that if only one diagnostic case returns a solution, it is saved in the database,
         # and it is executed
-        soln_1 = Solution(plan=self.valid_solution_plan)
-        self.mock_resolution_step_1 = IssueResolutionStep(
+        solution_count = Solution.objects.all().count()
+
+        soln_1 = Solution.objects.create(plan=self.valid_solution_plan)
+        self.mock_resolution_step_1 = ResolutionStep.objects.create(
             issue=self.issue, solution=soln_1)
         self.mock_resolution_step_2 = None
-
-        solution_count = Solution.objects.all().count()
 
         self.assertion.diagnose(**{'current_issue': self.issue})
 
@@ -217,7 +217,7 @@ class Test_diagnose(TestCase):
             IssueStatusType.SOLUTION_APPLIED,
             'Issue status should have been updated to SolutionApplied')
 
-        plan_set = set([isr.solution.plan_json for isr in issue_reloaded.issueresolutionstep_set.all()])
+        plan_set = set([isr.solution.plan_json for isr in issue_reloaded.resolutionstep_set.all()])
 
         self.assertEqual(
             plan_set,
@@ -229,12 +229,12 @@ class Test_diagnose(TestCase):
         #   created and the admins are notified.
         self.execute_solution_called = False
 
-        soln_1 = Solution(plan=self.valid_solution_plan)
-        soln_2 = Solution(plan=self.valid_solution_plan_2)
+        soln_1 = Solution.objects.create(plan=self.valid_solution_plan)
+        soln_2 = Solution.objects.create(plan=self.valid_solution_plan_2)
 
-        self.mock_resolution_step_1 = IssueResolutionStep(
+        self.mock_resolution_step_1 = ResolutionStep.objects.create(
             issue=self.issue, solution=soln_1)
-        self.mock_resolution_step_2 = IssueResolutionStep(
+        self.mock_resolution_step_2 = ResolutionStep.objects.create(
             issue=self.issue, solution=soln_2)
 
         self.assertion.diagnose(**{'current_issue': self.issue})
@@ -251,14 +251,14 @@ class Test_diagnose(TestCase):
             IssueStatusType.IMPASSE,
             'Issue status should have been updated to Impasse')
 
-        solution_set = Solution.objects.filter(issueresolutionstep__issue=self.issue)
+        solution_set = Solution.objects.filter(resolutionstep__issue=self.issue)
 
         self.assertEqual(
             len(solution_set),
             2,
             'Expected two valid solutions')
 
-        plan_set = set([isr.solution.plan_json for isr in issue_reloaded.issueresolutionstep_set.all()])
+        plan_set = set([isr.solution.plan_json for isr in issue_reloaded.resolutionstep_set.all()])
 
         self.assertEqual(
             plan_set,
@@ -267,14 +267,14 @@ class Test_diagnose(TestCase):
 
     def test_diagnose_with_pass(self):
         """
-        Test that diagnose appropriately handles an IssueResolutionStep
+        Test that diagnose appropriately handles an ResolutionStep
         with a PASS type.
         """
         # Create an issue resolution step with a PASS type
-        soln_1 = Solution(plan=self.valid_solution_plan)
+        soln_1 = Solution.objects.create(plan=self.valid_solution_plan)
 
-        self.mock_resolution_step_1 = IssueResolutionStep(
-            issue=self.issue, solution=soln_1, action_type=IssueResolutionStepActionType.PASS)
+        self.mock_resolution_step_1 = ResolutionStep.objects.create(
+            issue=self.issue, solution=soln_1, action_type=ResolutionStepActionType.PASS)
         self.mock_resolution_step_2 = None
 
         # Call diagnose
@@ -290,12 +290,12 @@ class Test_diagnose(TestCase):
         """
         # Create an issue resolution step with a PASS type and one
         # EXEC type
-        soln_1 = Solution(plan=self.valid_solution_plan)
-        soln_2 = Solution(plan=self.valid_solution_plan_2)
+        soln_1 = Solution.objects.create(plan=self.valid_solution_plan)
+        soln_2 = Solution.objects.create(plan=self.valid_solution_plan_2)
 
-        self.mock_resolution_step_1 = IssueResolutionStep(
-            issue=self.issue, solution=soln_1, action_type=IssueResolutionStepActionType.PASS)
-        self.mock_resolution_step_2 = IssueResolutionStep(
+        self.mock_resolution_step_1 = ResolutionStep.objects.create(
+            issue=self.issue, solution=soln_1, action_type=ResolutionStepActionType.PASS)
+        self.mock_resolution_step_2 = ResolutionStep.objects.create(
             issue=self.issue, solution=soln_2)
 
         # Call diagnose
@@ -435,6 +435,41 @@ class Test_check_and_diagnose(TestCase):
             self.post_recovery_cleanup_called,
             'post_recovery_clean_up should have been called')
 
+    def test_check_and_diagnose_with_exising_wontfix_issue(self):
+        # Create an issue marked as WONT_FIX
+        self.wont_fix = Issue.objects.create(
+            failed_assertion=self.assertion_meta,
+            status=IssueStatusType.WONT_FIX)
+
+        self.check_return_value = False
+
+        issue_count = Issue.objects.count()
+
+        # Run check_and_diagnose
+        ret_val = self.assertion.check_and_diagnose()
+
+        # Verify that diagnose was not called
+        self.assertFalse(
+            self.diagnose_called,
+            'Diagnose should not have been called')
+
+        # no additional issue was created,
+        self.assertEqual(
+            Issue.objects.count(),
+            issue_count,
+            'No new issues should have been created')
+
+        # False was returned
+        self.assertFalse(
+            ret_val,
+            'check_and_diagnose should have returned False')
+
+        # The pre-existing issue is still marked as WONT_FIX
+        self.assertEqual(
+            Issue.objects.get(id=self.wont_fix.id).status,
+            IssueStatusType.WONT_FIX,
+            'Issue should still be marked as WONT_FIX')
+
 
 class DoMethodTests(TestCase):
     """
@@ -485,11 +520,11 @@ class DoMethodTests(TestCase):
         sent_count = len(mail.outbox)
 
         # Set up some mock solutions
-        valid_solution = Solution(plan_json=json.dumps([
+        valid_solution = Solution.objects.create(plan_json=json.dumps([
             ('email', ['josh.marlow@akimbo.io', 'fake subject', 'fake message'], {}),
             ('defer_to_admins', ['copacetic'], {'hints': ['it is all good']}),
         ]))
-        valid_solution_2 = Solution(plan_json=json.dumps([
+        valid_solution_2 = Solution.objects.create(plan_json=json.dumps([
             ('email', ['wesley.kendall@akimbo.io', 'POW', 'fake message'], {}),
         ]))
 

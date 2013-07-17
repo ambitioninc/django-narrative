@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from ..models import AssertionMeta, Solution, Issue, IssueResolutionStep, IssueResolutionStepActionType
+from ..models import AssertionMeta, Solution, Issue, ResolutionStep, ResolutionStepActionType
 
 
 class IssueTests(TestCase):
@@ -25,7 +25,7 @@ class IssueTests(TestCase):
         ])
         test_solution_1.save_plan()
         test_solution_1.save()
-        isr_1 = IssueResolutionStep.objects.create(solution=test_solution_1, issue=issue)
+        isr_1 = ResolutionStep.objects.create(solution=test_solution_1, issue=issue)
 
         test_solution_2 = Solution.objects.create(plan=[
             ('notify_client_it', {
@@ -36,16 +36,16 @@ class IssueTests(TestCase):
         ])
         test_solution_2.save_plan()
         test_solution_2.save()
-        isr_2 = IssueResolutionStep.objects.create(solution=test_solution_2, issue=issue)
+        isr_2 = ResolutionStep.objects.create(solution=test_solution_2, issue=issue)
 
         test_solution_3 = Solution.objects.create(plan=[
             ('do_something_else', {}),
         ])
         test_solution_3.save_plan()
         test_solution_3.save()
-        IssueResolutionStep.objects.create(solution=test_solution_3, issue=issue)
+        ResolutionStep.objects.create(solution=test_solution_3, issue=issue)
 
-        IssueResolutionStep.objects.create(action_type=IssueResolutionStepActionType.PASS, issue=issue)
+        ResolutionStep.objects.create(action_type=ResolutionStepActionType.PASS, issue=issue)
 
         # Example plan to match
         target_solution = Solution.objects.create(plan=[

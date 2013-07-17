@@ -47,15 +47,19 @@ class IssueStatusType(StatusType):
     # The issue is fixed and the Issue has been closed
     RESOLVED = 3
 
+    # The issue should not be re-opened
+    WONT_FIX = 4
+
     types = (
         (OPEN, 'Open'),
         (SOLUTION_APPLIED, 'Solution Applied'),
         (IMPASSE, 'Impasse'),
         (RESOLVED, 'Resolved'),
+        (WONT_FIX, 'Wont Fix'),
     )
 
 
-class IssueResolutionStepActionType(StatusType):
+class ResolutionStepActionType(StatusType):
     EXEC = 0    # Perform some actions
     PASS = 1    # Pass and don't do anything right now
 
@@ -230,7 +234,7 @@ class Issue(models.Model):
     def explain(self, tabs=''):
         resolution_separator = '\n{0}    '.format(tabs)
         resolution_steps = resolution_separator + resolution_separator.join(
-            [step.explain(tabs + '    ') for step in self.issueresolutionstep_set.order_by('created')])
+            [step.explain(tabs + '    ') for step in self.resolutionstep_set.order_by('created')])
 
         explanation = [
             'Failed Assertion: {0}'.format(self.failed_assertion.display_name),
@@ -244,7 +248,7 @@ class Issue(models.Model):
 
     def steps_matching_solution(self, solution):
         """
-        Given an Issue, return the IssueResolutionStep where the solution applied
+        Given an Issue, return the ResolutionStep where the solution applied
         matches the provided solution.
 
         The match is in terms of matching operations; not neccesarily the arguments passed.
@@ -256,7 +260,7 @@ class Issue(models.Model):
 
         matching_steps = []
 
-        for step in self.issueresolutionstep_set.all():
+        for step in self.resolutionstep_set.all():
             if step.solution:
                 step.solution.load_plan()
                 if get_step_operations(step.solution) == target_solution_steps:
@@ -265,7 +269,7 @@ class Issue(models.Model):
         return matching_steps
 
 
-class IssueResolutionStep(models.Model):
+class ResolutionStep(models.Model):
     """
     Track steps taken to resolve an issue.
     """
@@ -273,17 +277,17 @@ class IssueResolutionStep(models.Model):
     solution = models.ForeignKey(Solution, null=True, blank=True)
 
     action_type = models.IntegerField(
-        choices=IssueResolutionStepActionType.types, default=IssueResolutionStepActionType.EXEC)
+        choices=ResolutionStepActionType.types, default=ResolutionStepActionType.EXEC)
 
     created = models.DateTimeField(auto_now_add=True)
 
     def __unicode__(self):
         return u'Action: {0}, Solution: {1}'.format(
-            IssueResolutionStepActionType.status_by_id(self.action_type), self.solution)
+            ResolutionStepActionType.status_by_id(self.action_type), self.solution)
 
     def __str__(self):
         return 'Action: {0}, Solution: {1}'.format(
-            IssueResolutionStepActionType.status_by_id(self.action_type), self.solution)
+            ResolutionStepActionType.status_by_id(self.action_type), self.solution)
 
     def explain(self, tabs=''):
         if self.solution:
@@ -292,7 +296,7 @@ class IssueResolutionStep(models.Model):
             solution_explanation = 'None'
 
         explanation = [
-            'Action Type: {0}'.format(IssueResolutionStepActionType.status_by_id(self.action_type)),
+            'Action Type: {0}'.format(ResolutionStepActionType.status_by_id(self.action_type)),
             'Solution: {0}'.format(solution_explanation),
         ]
 

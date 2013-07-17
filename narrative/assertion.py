@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.mail import EmailMultiAlternatives
 
-from .models import Issue, ModelIssue, IssueStatusType, IssueResolutionStepActionType
+from .models import Issue, ModelIssue, IssueStatusType, ResolutionStepActionType
 
 
 ### misc utility methods ###
@@ -58,21 +58,6 @@ class Assertion(object):
         # Filter out any 'None' results
         resolution_steps = filter(bool, resolution_steps)
 
-        # Save all of the proposed resolution steps
-        for irs in resolution_steps:
-            if irs.solution:
-                # Now this is pretty weird; the solution is an unsaved model;
-                # I don't understand why, but after we save he solution,
-                # we need to re-reference it before we save the thing pointing
-                # to the solution.
-                # Is this a bug in Django or am I doing something incredibly wrong and subtle?
-                soln = irs.solution
-                soln.save()
-                irs.solution = soln
-
-            irs.issue = current_issue
-            irs.save()
-
         if len(resolution_steps) == 0:
             # No solution found, notify the admins
             message = 'Failed Assertion: {0} ({1}) has no proposed solutions'.format(
@@ -89,7 +74,7 @@ class Assertion(object):
             # Found a single proposed resolution step; if the step is to do something, do it
             diagnosis = resolution_steps[0]
 
-            if IssueResolutionStepActionType.EXEC == diagnosis.action_type:
+            if ResolutionStepActionType.EXEC == diagnosis.action_type:
                 self.execute_solution(diagnosis.solution)
 
             current_issue.status = IssueStatusType.SOLUTION_APPLIED
@@ -104,7 +89,13 @@ class Assertion(object):
 
     def build_unresolved_issue_queryset(self, *args, **kwargs):
         return Issue.objects.filter(
-            failed_assertion=self.assertion_meta).exclude(status=IssueStatusType.RESOLVED)
+            failed_assertion=self.assertion_meta).exclude(
+                status=IssueStatusType.RESOLVED).exclude(
+                    status=IssueStatusType.WONT_FIX)
+
+    def build_wont_fix_issue_queryset(self, *args, **kwargs):
+        return Issue.objects.filter(
+            failed_assertion=self.assertion_meta, status=IssueStatusType.WONT_FIX)
 
     def create_issue(self, *args, **kwargs):
         return Issue.objects.create(
@@ -115,6 +106,8 @@ class Assertion(object):
         Check and diagnose this assertion for these parameters.
         """
         unresolved_issue_queryset = self.build_unresolved_issue_queryset(
+            *args, **kwargs)
+        wont_fix_issue_queryset = self.build_wont_fix_issue_queryset(
             *args, **kwargs)
 
         if self.check(*args, **kwargs):
@@ -132,6 +125,9 @@ class Assertion(object):
             if unresolved_issue_queryset.exists():
                 # Issue alredy exists
                 current_issue = unresolved_issue_queryset[0]
+            elif wont_fix_issue_queryset.exists():
+                # This is a pre-existing issue marked as WONT_FIX
+                return False
             else:
                 # No issue yet exists; create one
                 current_issue = self.create_issue(*args, **kwargs)
@@ -249,19 +245,34 @@ class ModelAssertion(Assertion):
         We override this to query for Model Issues instead of
         just Issues like the base Assertion class.
         """
-        record = kwargs.pop('record')
+        record = kwargs['record']
 
         return ModelIssue.objects.filter(
             failed_assertion=self.assertion_meta,
             model_type__model=record.__class__.__name__.lower(),
-            model_id=record.id).exclude(status=IssueStatusType.RESOLVED)
+            model_id=record.id).exclude(
+                status=IssueStatusType.RESOLVED).exclude(
+                    status=IssueStatusType.WONT_FIX)
+
+    def build_wont_fix_issue_queryset(self, *args, **kwargs):
+        """
+        We override this to query for Model Issues instead of
+        just Issues like the base Assertion class.
+        """
+        record = kwargs['record']
+
+        return ModelIssue.objects.filter(
+            failed_assertion=self.assertion_meta,
+            model_type__model=record.__class__.__name__.lower(),
+            status=IssueStatusType.WONT_FIX,
+            model_id=record.id)
 
     def create_issue(self, *args, **kwargs):
         """
         We override this to create Model Issues instead of
         just Issues like the base Assertion class.
         """
-        record = kwargs.pop('record')
+        record = kwargs['record']
 
         return ModelIssue.objects.create(
             failed_assertion=self.assertion_meta,
