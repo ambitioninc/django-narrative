@@ -153,8 +153,8 @@ class AssertionMeta(models.Model):
 
 class Solution(models.Model):
     def __init__(self, *args, **kwargs):
-        self.plan = kwargs.pop('plan', [])
-        self.save_plan()
+        plan = kwargs.pop('plan', [])
+        kwargs['plan_json'] = json.dumps(plan)
 
         super(Solution, self).__init__(*args, **kwargs)
 
@@ -170,11 +170,14 @@ class Solution(models.Model):
     # Time in which the solution was enacted
     enacted = models.DateTimeField(null=True, blank=True)
 
-    def load_plan(self):
-        self.plan = json.loads(self.plan_json)
+    def get_plan(self):
+        if self.plan_json:
+            return json.loads(self.plan_json)
+        else:
+            return []
 
-    def save_plan(self):
-        self.plan_json = json.dumps(self.plan)
+    def set_plan(self, plan):
+        self.plan_json = json.dumps(plan)
 
     def __unicode__(self):
         return u'Solution - Diagnostic case name: {0}, description: {1}'.format(
@@ -188,7 +191,7 @@ class Solution(models.Model):
         # Aggregate all of the plan steps into a nice human readable format
         plan_explanation = []
 
-        for step in self.plan:
+        for step in self.get_plan():
             op_name, kwargs = step
             keyword_list = ['{0}={1}'.format(k, v) for k, v in kwargs.items()]
             plan_explanation.append('{0}({1})'.format(op_name, ', '.join(keyword_list)))
@@ -262,8 +265,7 @@ class Issue(models.Model):
 
         for step in self.resolutionstep_set.all():
             if step.solution:
-                step.solution.load_plan()
-                if get_step_operations(step.solution.plan) == target_steps:
+                if get_step_operations(step.solution.get_plan()) == target_steps:
                     matching_steps.append(step)
 
         return matching_steps

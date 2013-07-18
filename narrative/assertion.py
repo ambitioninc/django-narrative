@@ -173,7 +173,7 @@ class Assertion(object):
         If they are not, notify the admins that a bad solution
         was generated.
         """
-        for step in solution.plan:
+        for step in solution.get_plan():
             action, kwargs = step
 
             if not hasattr(self, self.get_action_handler(action)):
@@ -191,7 +191,7 @@ class Assertion(object):
         Validate a solution, then step through and execute each of it's steps.
         """
         if self.validate_solution(solution):
-            for step in solution.plan:
+            for step in solution.get_plan():
                 action, kwargs = step
 
                 getattr(self, self.get_action_handler(action))(**kwargs)
