@@ -246,24 +246,24 @@ class Issue(models.Model):
 
         return '\n'.join(explanation)
 
-    def steps_matching_solution(self, solution):
+    def steps_matching_plan(self, plan):
         """
         Given an Issue, return the ResolutionStep where the solution applied
         matches the provided solution.
 
         The match is in terms of matching operations; not neccesarily the arguments passed.
         """
-        def get_step_operations(solution):
-            return set(map(lambda step: step[0], solution.plan))
+        def get_step_operations(plan):
+            return set(map(lambda step: step[0], plan))
 
-        target_solution_steps = get_step_operations(solution)
+        target_steps = get_step_operations(plan)
 
         matching_steps = []
 
         for step in self.resolutionstep_set.all():
             if step.solution:
                 step.solution.load_plan()
-                if get_step_operations(step.solution) == target_solution_steps:
+                if get_step_operations(step.solution.plan) == target_steps:
                     matching_steps.append(step)
 
         return matching_steps

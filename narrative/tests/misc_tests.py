@@ -54,6 +54,6 @@ class IssueTests(TestCase):
         ])
 
         self.assertEqual(
-            set(issue.steps_matching_solution(target_solution)),
+            set(issue.steps_matching_plan(target_solution.plan)),
             set([isr_1, isr_2]),
             'There should only be two matching issue resolution steps')
