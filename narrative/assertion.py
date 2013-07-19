@@ -121,7 +121,12 @@ class Assertion(object):
         wont_fix_issue_queryset = self.build_wont_fix_issue_queryset(
             *args, **kwargs)
 
-        if self.check(*args, **kwargs):
+        check_result = self.check(*args, **kwargs)
+
+        self.assertion_meta.last_check = datetime.datetime.utcnow()
+        self.assertion_meta.save()
+
+        if check_result:
             # Everything is currently okay
             if unresolved_issue_queryset.exists():
                 # This assertion just started passing.

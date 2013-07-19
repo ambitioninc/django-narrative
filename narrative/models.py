@@ -1,3 +1,4 @@
+import datetime
 import json
 import uuid
 
@@ -128,6 +129,16 @@ class AssertionMeta(models.Model):
 
     # Determines if this assertion should ever be checked
     enabled = models.BooleanField(default=False)
+
+    # Indicate how often to check this assertion
+    check_interval_seconds = models.IntegerField(default=3600)
+    last_check = models.DateTimeField(default=datetime.datetime(1970, 1, 1))
+
+    def should_check(self):
+        """
+        Determine if enough time has passed to check again.
+        """
+        return (self.last_check + datetime.timedelta(seconds=self.check_interval_seconds)) <= datetime.datetime.utcnow()
 
     def load_assertion_class(self):
         """
