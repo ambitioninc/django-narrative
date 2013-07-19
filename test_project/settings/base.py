@@ -160,5 +160,5 @@ LOGGING = {
     }
 }
 
-NARRATIVE_ADMIN_GROUP_NAME = 'Narrative_admins'
+NARRATIVE_ADMIN_GROUP_NAME = 'Narrative Admins'
 NARRATIVE_REPLY_EMAIL_ADDRESS = 'noreply@example.com'
