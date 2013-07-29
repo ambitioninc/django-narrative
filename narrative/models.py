@@ -200,12 +200,9 @@ class Solution(models.Model):
 
     def explain(self, tabs=''):
         # Aggregate all of the plan steps into a nice human readable format
-        plan_explanation = []
-
-        for step in self.get_plan():
-            op_name, kwargs = step
-            keyword_list = ['{0}={1}'.format(k, v) for k, v in kwargs.items()]
-            plan_explanation.append('{0}({1})'.format(op_name, ', '.join(keyword_list)))
+        plan_explanation = [
+            step[0] for step in self.get_plan()
+        ]
 
         step_separator = ('\n{0}    '.format(tabs))
 
