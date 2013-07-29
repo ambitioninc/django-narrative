@@ -70,9 +70,31 @@ class ResolutionStepActionType(StatusType):
     )
 
 
+class EventManager(models.Manager):
+    def clear_expired(self):
+        expired_set = self.filter(expiration_time__isnull=False).filter(expiration_time__lte=self.get_utc_now())
+
+        expired_count = expired_set.count()
+
+        expired_set.delete()
+
+        return expired_count
+
+    def get_utc_now(self):
+        return utc_tz.localize(datetime.datetime.utcnow())
+
+
 class Event(models.Model):
+    def __init__(self, *args, **kwargs):
+        if 'ttl' in kwargs:
+            kwargs['expiration_time'] = self.get_utc_now() + kwargs.pop('ttl')
+
+        super(Event, self).__init__(*args, **kwargs)
+
     # When did the event occur
     timestamp = models.DateTimeField(auto_now_add=True)
+
+    expiration_time = models.DateTimeField(null=True, blank=True, default=None)
 
     # Origin of this event; ie, what piece of software created it
     origin = models.CharField(max_length=64)
@@ -91,6 +113,11 @@ class Event(models.Model):
 
     # An ID to tie particular events together
     thread_id = models.CharField(max_length=36, null=True, blank=True)
+
+    objects = EventManager()
+
+    def get_utc_now(self):
+        return utc_tz.localize(datetime.datetime.utcnow())
 
     @property
     def timestamp_with_tz(self):
