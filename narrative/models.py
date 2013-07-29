@@ -72,7 +72,13 @@ class ResolutionStepActionType(StatusType):
 
 class EventManager(models.Manager):
     def clear_expired(self):
-        self.filter(expiration_time__isnull=False).filter(expiration_time__lte=self.get_utc_now()).delete()
+        expired_set = self.filter(expiration_time__isnull=False).filter(expiration_time__lte=self.get_utc_now())
+
+        expired_count = expired_set.count()
+
+        expired_set.delete()
+
+        return expired_count
 
     def get_utc_now(self):
         return utc_tz.localize(datetime.datetime.utcnow())

@@ -48,18 +48,28 @@ class TestEventManager(TestCase):
         ]
         event_id_list = [evt.id for evt in event_list]
 
-        event_count = Event.objects.count()
-
         # Wait until 'now' is past the expiration time
         self.mock_utc_now = self.mock_utc_now + ttl + datetime.timedelta(hours=1)
 
+        # Create an event which has not yet expired, and thus should not be deleted
+        Event.objects.create(origin='mock', event_name='test', ttl=ttl)
+
+        # Create an event with no ttl (something to be remembered for an eternity)
+        Event.objects.create(origin='mock', event_name='test')
+
+        event_count = Event.objects.count()
+
         # Call clear_expired_events
-        Event.objects.clear_expired()
+        cleared_events = Event.objects.clear_expired()
+
+        self.assertEqual(
+            cleared_events,
+            expired_event_count)
 
         # Verify the events have gone away
         self.assertEqual(
             Event.objects.count(),
-            event_count - len(event_list))
+            event_count - expired_event_count)
 
         self.assertEqual(
             Event.objects.filter(id__in=event_id_list).count(), 0)
