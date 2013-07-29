@@ -321,10 +321,15 @@ class Test_check_and_diagnose(TestCase):
         self.email_called = False
         self.deferred_kwargs = None
 
+        self.mock_utc_now = datetime.datetime(2013, 07, 06, 12, 0, 0)
+
         # Values returned by stubbed methods
         self.check_return_value = False
 
         class TestAssertion(Assertion):
+            def get_utc_now(self_):
+                return self.mock_utc_now
+
             def check(self_):
                 return self.check_return_value
 
@@ -421,6 +426,8 @@ class Test_check_and_diagnose(TestCase):
         self.check_return_value = True
         self.post_recovery_cleanup_called = False
 
+        self.mock_utc_now += datetime.timedelta(hours=1)
+
         self.assertion.check_and_diagnose()
 
         # Reload the previously open test Issue
@@ -430,6 +437,11 @@ class Test_check_and_diagnose(TestCase):
             test_issue.status,
             IssueStatusType.RESOLVED,
             'Issue should have been resolved')
+
+        self.assertEqual(
+            test_issue.resolved_timestamp,
+            self.mock_utc_now,
+            'Issue resolved timestamp should have been updated')
 
         self.assertTrue(
             self.post_recovery_cleanup_called,

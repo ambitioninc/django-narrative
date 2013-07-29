@@ -130,9 +130,13 @@ class Assertion(object):
             # Everything is currently okay
             if unresolved_issue_queryset.exists():
                 # This assertion just started passing.
-                # Close any open issues and do any needed clean up.
+                # Set the resolved timestamp to now
+                unresolved_issue_queryset.update(resolved_timestamp=self.get_utc_now())
+
+                # Close any open issues
                 unresolved_issue_queryset.update(status=IssueStatusType.RESOLVED)
 
+                # Do any needed clean up.
                 self.post_recovery_cleanup(*args, **kwargs)
 
             return True
