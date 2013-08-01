@@ -114,8 +114,8 @@ class Event(models.Model):
         else:
             return []
 
-    def set_event_details(self, plan):
-        self.event_details_json = json.dumps(plan)
+    def set_event_details(self, details):
+        self.event_details_json = json.dumps(details)
 
     # Event status
     status = models.IntegerField(choices=EventStatusType.types, default=EventStatusType.SUCCESS)
