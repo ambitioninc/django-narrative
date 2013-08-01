@@ -102,11 +102,20 @@ class Event(models.Model):
     # What event happened; ie, an attempt to connect to a database
     event_name = models.CharField(max_length=64)
 
-    # Target of the event; ie, what database did the connection involve
-    event_operand = models.CharField(max_length=64, null=True, blank=True)
+    # Additional information about the event; this is very event specific
+    # This approach, storing json in a textfield and having an
+    # explicit accessor and mutator, is very ugly.  Really this is because
+    # we are storign non-structured/sparse data in a relational format.
+    event_details_json = models.TextField(null=True, blank=True, default=None)
 
-    # Additional information about the event_operand; ie, what error happened
-    event_operand_detail = models.CharField(max_length=64, null=True, blank=True)
+    def get_event_details(self):
+        if self.event_details_json:
+            return json.loads(self.event_details_json)
+        else:
+            return []
+
+    def set_event_details(self, plan):
+        self.event_details_json = json.dumps(plan)
 
     # Event status
     status = models.IntegerField(choices=EventStatusType.types, default=EventStatusType.SUCCESS)
