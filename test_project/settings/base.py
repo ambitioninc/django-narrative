@@ -125,6 +125,7 @@ INSTALLED_APPS = (
     # 'django.contrib.staticfiles',
     'django.contrib.admin',
     'narrative',
+    'narrative.batteries',
     'django_nose',
     'south',
     'test_project',
