@@ -52,7 +52,7 @@ def detect_temporal_clusters(time_list):
                 # in the same cluster
                 clusters[-1].append(time_list[idx])
 
-        return clusters,new_cluster_threshold
+        return clusters, new_cluster_threshold
     return [], 0
 
 
