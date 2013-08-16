@@ -6,7 +6,7 @@ from django.contrib.auth.models import Group, User
 from django.core import mail
 from django.test import TestCase
 
-from ..assertion import Assertion
+from ..assertions import Assertion
 from ..models import (Solution, AssertionMeta, Issue, ResolutionStep,
                       IssueStatusType, ResolutionStepActionType)
 
