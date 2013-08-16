@@ -1,5 +1,7 @@
 import datetime
 
+from django.conf import settings
+
 from narrative.models import Event
 
 
@@ -11,7 +13,7 @@ class UptimeEventTypes:
 heartbeat_details = {
     'origin': 'external_heartbeat',
     'event_name': 'beat',
-    'ttl': datetime.timedelta(days=7),
+    'ttl': settings.NARRATIVE_HEARBEAT_TTL,
 }
 
 
