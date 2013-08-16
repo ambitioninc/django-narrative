@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib.auth.models import User, Group
 from django.test import TestCase
 
-from ..assertion import ModelAssertion
+from ..assertions import ModelAssertion
 from ..models import AssertionMeta, Issue, ModelIssue, IssueStatusType, ResolutionStep, ResolutionStepActionType
 
 from test_project.models import TestModel
