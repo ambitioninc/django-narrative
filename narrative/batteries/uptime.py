@@ -17,7 +17,7 @@ heartbeat_details = {
 }
 
 
-def create_heartbeat(self):
+def create_heartbeat():
     Datum.objects.create(
         origin=heartbeat_details['origin'],
         datum_name=heartbeat_details['datum_name'],
