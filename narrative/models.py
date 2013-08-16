@@ -70,7 +70,7 @@ class ResolutionStepActionType(StatusType):
     )
 
 
-class EventManager(models.Manager):
+class DatumManager(models.Manager):
     def clear_expired(self):
         expired_set = self.filter(expiration_time__isnull=False).filter(expiration_time__lte=self.get_utc_now())
 
@@ -84,46 +84,42 @@ class EventManager(models.Manager):
         return utc_tz.localize(datetime.datetime.utcnow())
 
 
-class Event(models.Model):
+class Datum(models.Model):
     def __init__(self, *args, **kwargs):
         if 'ttl' in kwargs:
             kwargs['expiration_time'] = self.get_utc_now() + kwargs.pop('ttl')
 
-        super(Event, self).__init__(*args, **kwargs)
+        super(Datum, self).__init__(*args, **kwargs)
 
-    # When did the event occur
+    # When was the datum created
     timestamp = models.DateTimeField(auto_now_add=True)
 
     expiration_time = models.DateTimeField(null=True, blank=True, default=None)
 
-    # Origin of this event; ie, what piece of software created it
+    # Origin of this datum; ie, what piece of software created it
     origin = models.CharField(max_length=64)
 
-    # What event happened; ie, an attempt to connect to a database
-    event_name = models.CharField(max_length=64)
+    datum_name = models.CharField(max_length=64)
 
-    # Additional information about the event; this is very event specific
+    # Additional information about the datum; this is very datum specific
     # This approach, storing json in a textfield and having an
     # explicit accessor and mutator, is very ugly.  Really this is because
     # we are storign non-structured/sparse data in a relational format.
-    event_details_json = models.TextField(null=True, blank=True, default=None)
+    datum_note_json = models.TextField(null=True, blank=True, default=None)
 
-    def get_event_details(self):
-        if self.event_details_json:
-            return json.loads(self.event_details_json)
+    def get_note(self):
+        if self.datum_note_json:
+            return json.loads(self.datum_note_json)
         else:
             return []
 
-    def set_event_details(self, details):
-        self.event_details_json = json.dumps(details)
+    def set_note(self, note):
+        self.datum_note_json = json.dumps(note)
 
-    # Event status
-    status = models.IntegerField(choices=EventStatusType.types, default=EventStatusType.SUCCESS)
-
-    # An ID to tie particular events together
+    # An ID to tie particular datums together
     thread_id = models.CharField(max_length=36, null=True, blank=True)
 
-    objects = EventManager()
+    objects = DatumManager()
 
     def get_utc_now(self):
         return utc_tz.localize(datetime.datetime.utcnow())
@@ -136,21 +132,12 @@ class Event(models.Model):
         if None == self.thread_id:
             self.thread_id = str(uuid.uuid4())
 
-        super(Event, self).save(*args, **kwargs)
+        super(Datum, self).save(*args, **kwargs)
 
     def __unicode__(self):
-        return u'origin:{0} event_name:{1} event_operand:{2} event_operand_detail:{3}'.format(
-            self.origin, self.event_name, self.event_operand, self.event_operand_detail)
-
-
-def log_event(status_name, origin, event_name, event_operand=None, thread_id=None):
-    evt = Event(
-        origin=origin, event_name=event_name, event_operand=event_operand,
-        status=EventStatusType.status_by_name(status_name), thread_id=thread_id)
-
-    evt.save()
-
-    return evt
+        note_snippet = self.datum_note_json[:50] if self.datum_note_json else ''
+        return u'origin:{0} datum_name:{1} note:{2}'.format(
+            self.origin, self.datum_name, note_snippet)
 
 
 class AssertionMeta(models.Model):

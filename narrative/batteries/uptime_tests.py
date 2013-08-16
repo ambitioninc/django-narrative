@@ -2,7 +2,7 @@ import datetime
 import unittest
 
 from uptime import detect_temporal_clusters, heartbeat_details, get_uptime_history, UptimeEventTypes
-from narrative.models import Event
+from narrative.models import Datum
 
 
 def simulate_uptime(start_time, end_time, interval=None):
@@ -18,9 +18,9 @@ def simulate_uptime(start_time, end_time, interval=None):
             int(start_time.strftime('%s')),
             int(end_time.strftime('%s')) + interval_seconds,
             interval_seconds):
-        # Create an event
-        evt = Event.objects.create(
-            origin=heartbeat_details['origin'], event_name=heartbeat_details['event_name'])
+        # Create an datum
+        evt = Datum.objects.create(
+            origin=heartbeat_details['origin'], datum_name=heartbeat_details['datum_name'])
         # Reset it's creation timestamp for testing purposes
         evt.timestamp = datetime.datetime.utcfromtimestamp(beat_time)
         evt.save()

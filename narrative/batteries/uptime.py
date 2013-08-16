@@ -2,7 +2,7 @@ import datetime
 
 from django.conf import settings
 
-from narrative.models import Event
+from narrative.models import Datum
 
 
 class UptimeEventTypes:
@@ -12,15 +12,15 @@ class UptimeEventTypes:
 
 heartbeat_details = {
     'origin': 'external_heartbeat',
-    'event_name': 'beat',
+    'datum_name': 'beat',
     'ttl': settings.NARRATIVE_HEARBEAT_TTL,
 }
 
 
 def create_heartbeat(self):
-    Event.objects.create(
+    Datum.objects.create(
         origin=heartbeat_details['origin'],
-        event_name=heartbeat_details['event_name'],
+        datum_name=heartbeat_details['datum_name'],
         ttl=heartbeat_details['ttl'])
 
 
@@ -60,8 +60,8 @@ def detect_temporal_clusters(time_list):
 
 def get_uptime_history(utcnow=datetime.datetime.utcnow):
     """
-    Return a history of uptime events; the events are in descending order,
-    going from most recent to least recent.  Each event is a tuple:
+    Return a history of uptime data; the data are in descending order,
+    going from most recent to least recent.  Each datum is a tuple:
     (UP/Down datetime) where UP/DOWN is a value from UptimeEventType.
     """
     def unix_timestamp(dt):
@@ -71,8 +71,8 @@ def get_uptime_history(utcnow=datetime.datetime.utcnow):
         return datetime.datetime.utcfromtimestamp(timestamp)
 
     # Get a list of all heartbeats since the pusher went dark
-    heartbeat_times = Event.objects.filter(
-        origin=heartbeat_details['origin'], event_name=heartbeat_details['event_name']).values('timestamp')
+    heartbeat_times = Datum.objects.filter(
+        origin=heartbeat_details['origin'], datum_name=heartbeat_details['datum_name']).values('timestamp')
 
     # Pull out the heartbeat times
     heartbeat_times = [
@@ -99,7 +99,7 @@ def get_uptime_history(utcnow=datetime.datetime.utcnow):
         history.append((UptimeEventTypes.DOWN, downtime))
 
     # There is an edge case with the last cluster, where this is the most recent heartbeat
-    # and it was in the last few seconds; in this case, we cannot assume this was a downtime event
+    # and it was in the last few seconds; in this case, we cannot assume this was a downtime datum
     last_cluster = clusters[-1]
     uptime = from_unix_timestamp(last_cluster[0])
     downtime = from_unix_timestamp(last_cluster[-1])
