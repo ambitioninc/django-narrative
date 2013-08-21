@@ -4,24 +4,10 @@ import datetime
 
 from pytz import utc as utc_tz
 
-from django.conf import settings
-from django.contrib.auth.models import Group
-from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
 from .models import Issue, ModelIssue, IssueStatusType, ResolutionStepActionType
-
-
-### misc utility methods ###
-def blast_email(subject, message_txt, message_html, recipients):
-    email = EmailMultiAlternatives(
-        subject, message_txt, settings.NARRATIVE_REPLY_EMAIL_ADDRESS,
-        recipients, headers={'Reply-To': settings.NARRATIVE_REPLY_EMAIL_ADDRESS})
-
-    if message_html:
-        email.attach_alternative(message_html, 'text/html')
-
-    email.send()
+from .executor import Executor
 
 
 class Assertion(object):
@@ -41,6 +27,10 @@ class Assertion(object):
     @abc.abstractmethod
     def check(self):
         pass
+
+    @property
+    def executor(self):
+        return Executor()
 
     ### Diagnostic related methods ###
     def diagnose(self, *args, **kwargs):
@@ -75,14 +65,15 @@ class Assertion(object):
                 'no_solution_for_failed_assertion.html',
                 message_kwargs)
 
-            self.do_defer_to_admins(
+            self.executor.do_defer_to_admins(
                 'Failed assertion; No solutions found', message_txt, message_html)
         elif len(resolution_steps) > 1:
             # Multiple solutions found; record them and, notify the admins
             current_issue.status = IssueStatusType.IMPASSE
             current_issue.save()
 
-            self.do_defer_multiple_solutions_to_admins(resolution_steps)
+            self.executor.do_defer_multiple_solutions_to_admins(
+                resolution_steps, self.assertion_meta.display_name)
         else:
             # Found a single proposed resolution step; if the step is to do something, do it
             diagnosis = resolution_steps[0]
@@ -171,73 +162,28 @@ class Assertion(object):
         ]
 
     ### Misc utilties for working with solutions ###
-    def get_action_handler(self, action_name):
-        return 'do_{0}'.format(action_name)
-
-    def validate_solution(self, solution):
-        """"
-        Examin all of the steps in a solution and verify
-        that they are supported by this Assertion.
-
-        If they are not, notify the admins that a bad solution
-        was generated.
-        """
-        for step in solution.get_plan():
-            action, kwargs = step
-
-            if not hasattr(self, self.get_action_handler(action)):
-                self.do_defer_to_admins('Invalid solution: {0}'.format(str(solution)))
-                return False
-
-        else:
-            return True
-
     def get_utc_now(self):
         return utc_tz.localize(datetime.datetime.utcnow())
+
+    def validate_solution(self, solution):
+        (valid, invalid_step) = self.executor.can_execute(solution.get_plan())
+
+        if not valid:
+            self.executor.do_defer_to_admins(
+                'Assertion: {0}, Invalid step: {0}'.format(
+                    self.assertion_meta.display_name, invalid_step))
+
+        return valid
 
     def execute_solution(self, solution):
         """
         Validate a solution, then step through and execute each of it's steps.
         """
         if self.validate_solution(solution):
-            for step in solution.get_plan():
-                action, kwargs = step
-
-                getattr(self, self.get_action_handler(action))(**kwargs)
+            self.executor.execute(solution.get_plan())
 
             solution.enacted = self.get_utc_now()
             solution.save()
-
-    ### do_* methods for executing particular operations such as notifying individuals ###
-    def do_defer_to_admins(self, subject, message, message_html=None):
-        admin_group = Group.objects.get(name=settings.NARRATIVE_ADMIN_GROUP_NAME)
-        admins = admin_group.user_set.all()
-
-        admin_emails = [admin.email for admin in admins]
-
-        blast_email(subject, message, message_html, admin_emails)
-
-    def do_defer_multiple_solutions_to_admins(self, resolution_steps):
-        subject = 'Impasse: "{0}" has Multiple resolution steps proposed'.format(
-            self.assertion_meta.display_name)
-
-        message_kwargs = {
-            'assertion_name': self.assertion_meta.display_name,
-            'solution_count': len(resolution_steps),
-            'proposed_steps': resolution_steps,
-        }
-
-        message = render_to_string(
-            'multiple_solution_impasse_message.txt',
-            message_kwargs)
-        message_html = render_to_string(
-            'multiple_solution_impasse_message.html',
-            message_kwargs)
-
-        self.do_defer_to_admins(subject, message, message_html)
-
-    def do_email(self, address, subject, message_txt, message_html):
-        blast_email(subject, message_txt, message_html, [address])
 
 
 class ModelAssertion(Assertion):

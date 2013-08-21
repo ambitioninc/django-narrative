@@ -1,23 +1,34 @@
 import abc
+import datetime
 import json
 
+from pytz import utc as utc_tz
+
 from narrative.models import Datum
+from narrative.executor import Executor
 
 
 class Event(object):
     __metaclass__ = abc.ABCMeta
 
-    @abc.abstractproperty
-    def event_name(self):
-        pass
+    def __init__(self, event_meta):
+        self.event_meta = event_meta
 
     @abc.abstractmethod
     def detect(self, *args, **kwargs):
         pass
 
     @property
+    def executor(self):
+        return Executor()
+
+    @property
     def origin_name(self):
         return self.__class__.__name__
+
+    ### Misc utilties for working with solutions ###
+    def get_utc_now(self):
+        return utc_tz.localize(datetime.datetime.utcnow())
 
     def summary(self, *args, **kwargs):
         """
@@ -41,7 +52,7 @@ class Event(object):
     def get_or_create_summary_datum(self, *args, **kwargs):
         datum, created = Datum.objects.get_or_create(
             origin=self.origin_name,
-            datum_name=self.event_name,
+            datum_name=self.event_meta.display_name,
             datum_note_json=json.dumps(self.summary(*args, **kwargs)))
 
         return created

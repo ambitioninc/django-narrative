@@ -6,7 +6,7 @@ from ..models import AssertionMeta, Solution, Issue, ResolutionStep, ResolutionS
 class IssueTests(TestCase):
     def setUp(self):
         self.assertion_meta = AssertionMeta.objects.create(
-            display_name='Test Assertion', assertion_load_path='foo.bar')
+            display_name='Test Assertion', class_load_path='foo.bar')
 
     def test_steps_matching_solution(self):
         """

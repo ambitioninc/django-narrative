@@ -1,34 +1,54 @@
 import time
 
-from models import AssertionMeta
+from models import AssertionMeta, EventMeta
 
 
-def check_enabled(verbose=False):
+def check_enabled_assertions(verbose=False):
     """
     Check all enabled assertions.
     """
-    check_assertions(AssertionMeta.objects.filter(enabled=True), verbose)
+    process_periodicals(
+        AssertionMeta.objects.filter(enabled=True),
+        verbose, process_method_name='check_and_diagnose')
 
 
-def check_assertions(assertion_meta_list, verbose):
+def detect_enabled_events(verbose=False):
     """
-    Check the specified assertions.
+    Check all enabled events.
+    """
+    process_periodicals(
+        EventMeta.objects.filter(enabled=True),
+        verbose, process_method_name='detect_and_handle', true_copy='POSITIVE', false_copy='NEGATIVE')
+
+
+def process_periodicals(
+        periodical_meta_list, verbose, process_method_name,
+        true_copy='PASSED', false_copy='FAILED'):
+    """
+    Check the specified periodicals.
     """
     start_time = time.time()
 
     check_count = 0
 
-    for assertion_meta in assertion_meta_list:
-        if assertion_meta.should_check():
+    for periodical_meta in periodical_meta_list:
+        if periodical_meta.should_check():
             if verbose:
-                print 'Checking Assertion {0}...'.format(assertion_meta.display_name)
+                print 'Checking {0} {1}...'.format(
+                    periodical_meta.__class__.__name__,
+                    periodical_meta.display_name)
 
-            assertion_class = assertion_meta.load_assertion_class()
-            assertion = assertion_class(assertion_meta)
-            success = assertion.check_and_diagnose()
+                periodical_class = periodical_meta.load_class()
 
-            if verbose:
-                print '     {0}'.format('PASSED' if success else 'FAILED')
+                if periodical_class:
+                    periodical_obj = periodical_class(periodical_meta)
+                    success = getattr(periodical_obj, process_method_name)()
+
+                    if verbose:
+                        print '     {0}'.format(true_copy if success else false_copy)
+                else:
+                    print '     Error loading class "{0}"'.format(
+                        periodical_meta.class_load_path)
 
             check_count += 1
 
@@ -38,5 +58,5 @@ def check_assertions(assertion_meta_list, verbose):
 
     if verbose:
         print '-'*20
-        print 'Checked {0} assertions in {1} seconds ({2} minutes)'.format(
+        print 'Checked {0} object in {1} seconds ({2} minutes)'.format(
             check_count, duration, duration/60.0)

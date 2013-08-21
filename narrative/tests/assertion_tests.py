@@ -7,6 +7,7 @@ from django.core import mail
 from django.test import TestCase
 
 from ..assertions import Assertion
+from ..executor import Executor
 from ..models import (Solution, AssertionMeta, Issue, ResolutionStep,
                       IssueStatusType, ResolutionStepActionType)
 
@@ -25,6 +26,17 @@ class AssertionTests(TestCase):
 
         self.mock_utc_now = datetime.datetime(2013, 7, 9, 12, 0, 0)
 
+        class MockExecutor(Executor):
+            def do_defer_multiple_solutions_to_admins(self_, *args, **kwargs):
+                self.deferred_multiple_solutions = True
+
+            def do_defer_to_admins(self_, *args, **kwargs):
+                self.defer_to_admins_called = True
+                self.deferred_kwargs = kwargs
+
+            def do_email(self_, *args, **kwargs):
+                self.email_called = True
+
         class TestAssertion(Assertion):
             def get_utc_now(self_):
                 return self.mock_utc_now
@@ -41,18 +53,12 @@ class AssertionTests(TestCase):
             def diagnostic_case_test_2(self_, *args, **kwargs):
                 pass
 
-            def do_defer_multiple_solutions_to_admins(self_, solutions):
-                self.deferred_multiple_solutions = True
-
-            def do_defer_to_admins(self_, *args, **kwargs):
-                self.defer_to_admins_called = True
-                self.deferred_kwargs = kwargs
-
-            def do_email(self_, *args, **kwargs):
-                self.email_called = True
+            @property
+            def executor(self_):
+                return MockExecutor()
 
         self.assertion_meta = AssertionMeta.objects.create(
-            display_name='Mock assertion', assertion_load_path='foo.bar', enabled=True)
+            display_name='Mock assertion', class_load_path='foo.bar', enabled=True)
 
         self.assertion = TestAssertion(self.assertion_meta)
 
@@ -128,6 +134,17 @@ class Test_diagnose(TestCase):
         self.mock_resolution_step_1 = None
         self.mock_resolution_step_2 = None
 
+        class MockExecutor(Executor):
+            def do_defer_multiple_solutions_to_admins(self_, *args, **kwargs):
+                self.deferred_multiple_solutions = True
+
+            def do_defer_to_admins(self_, *args, **kwargs):
+                self.defer_to_admins_called = True
+                self.deferred_kwargs = kwargs
+
+            def do_email(self_, *args, **kwargs):
+                self.email_called = True
+
         class TestAssertion(Assertion):
             def check(self_):
                 pass
@@ -144,18 +161,12 @@ class Test_diagnose(TestCase):
                 self.diagnostic_case_test_2_called = True
                 return self.mock_resolution_step_2
 
-            def do_defer_multiple_solutions_to_admins(self_, solutions):
-                self.deferred_multiple_solutions = True
-
-            def do_defer_to_admins(self_, *args, **kwargs):
-                self.defer_to_admins_called = True
-                self.deferred_kwargs = kwargs
-
-            def do_email(self_, *args, **kwargs):
-                self.email_called = True
+            @property
+            def executor(self_):
+                return MockExecutor()
 
         self.assertion_meta = AssertionMeta.objects.create(
-            display_name='Mock assertion', assertion_load_path='foo.bar', enabled=True)
+            display_name='Mock assertion', class_load_path='foo.bar', enabled=True)
 
         self.assertion = TestAssertion(self.assertion_meta)
 
@@ -326,6 +337,17 @@ class Test_check_and_diagnose(TestCase):
         # Values returned by stubbed methods
         self.check_return_value = False
 
+        class MockExecutor(Executor):
+            def do_defer_multiple_solutions_to_admins(self_, *args, **kwargs):
+                self.deferred_multiple_solutions = True
+
+            def do_defer_to_admins(self_, *args, **kwargs):
+                self.defer_to_admins_called = True
+                self.deferred_kwargs = kwargs
+
+            def do_email(self_, *args, **kwargs):
+                self.email_called = True
+
         class TestAssertion(Assertion):
             def get_utc_now(self_):
                 return self.mock_utc_now
@@ -342,18 +364,12 @@ class Test_check_and_diagnose(TestCase):
             def diagnose(self_, *args, **kwargs):
                 self.diagnose_called = True
 
-            def do_defer_multiple_solutions_to_admins(self_, solutions):
-                self.deferred_multiple_solutions = True
-
-            def do_defer_to_admins(self_, *args, **kwargs):
-                self.defer_to_admins_called = True
-                self.deferred_kwargs = kwargs
-
-            def do_email(self_, *args, **kwargs):
-                self.email_called = True
+            @property
+            def executor(self):
+                return MockExecutor()
 
         self.assertion_meta = AssertionMeta.objects.create(
-            display_name='Mock assertion', assertion_load_path='foo.bar', enabled=True)
+            display_name='Mock assertion', class_load_path='foo.bar', enabled=True)
 
         self.assertion = TestAssertion(self.assertion_meta)
 
@@ -489,13 +505,12 @@ class DoMethodTests(TestCase):
     the Assertion class.
     """
     def setUp(self):
-
         class TestAssertion(Assertion):
             def check(self):
                 return False
 
         self.assertion_meta = AssertionMeta(
-            display_name='Test Assertion', assertion_load_path='foo.bar', enabled=True)
+            display_name='Test Assertion', class_load_path='foo.bar', enabled=True)
 
         self.assertion = TestAssertion(self.assertion_meta)
 
@@ -517,7 +532,8 @@ class DoMethodTests(TestCase):
         test_message = 'test message'
         test_hints = ['hint 1', 'hint 2']
 
-        self.assertion.do_defer_to_admins(test_subject, test_message, test_hints)
+        self.assertion.executor.do_defer_to_admins(
+            test_subject, test_message, test_hints)
 
         # Verify the emails were sent to the appropriate users
         self.assertEqual(
@@ -540,7 +556,9 @@ class DoMethodTests(TestCase):
             ('email', ['wesley.kendall@akimbo.io', 'POW', 'fake message'], {}),
         ]))
 
-        self.assertion.do_defer_multiple_solutions_to_admins([valid_solution, valid_solution_2])
+        self.assertion.executor.do_defer_multiple_solutions_to_admins(
+            [valid_solution, valid_solution_2],
+            self.assertion.assertion_meta.display_name)
 
         expected_subject = 'Impasse: "Test Assertion" has Multiple resolution steps proposed'
 

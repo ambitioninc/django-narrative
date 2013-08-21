@@ -140,20 +140,24 @@ class Datum(models.Model):
             self.origin, self.datum_name, note_snippet)
 
 
-class AssertionMeta(models.Model):
+class PeriodicalMeta(models.Model):
     """
-    Used for storing meta information about a specific assertion.
+    Used for storing meta information about class that needs to
+    be periodically checked.
     """
+    class Meta:
+        abstract = True
+
     # Display name for humans
     display_name = models.CharField(max_length=64, unique=True)
 
-    # Python import path to the Assertion class
-    assertion_load_path = models.CharField(max_length=64, unique=True)
+    # Python import path to the periodic class
+    class_load_path = models.CharField(max_length=64, unique=True, default='')
 
-    # Determines if this assertion should ever be checked
+    # Determines if this periodic should ever be checked
     enabled = models.BooleanField(default=False)
 
-    # Indicate how often to check this assertion
+    # Indicate how often to check this periodic
     check_interval_seconds = models.IntegerField(default=3600)
     last_check = models.DateTimeField(default=datetime.datetime(1970, 1, 1))
 
@@ -163,26 +167,36 @@ class AssertionMeta(models.Model):
         """
         return (self.last_check + datetime.timedelta(seconds=self.check_interval_seconds)) <= datetime.datetime.utcnow()
 
-    def load_assertion_class(self):
+    def load_class(self):
         """
-        Imports and returns the Assertion module.
+        Imports and returns the Periodic module.
         """
-        assertion_path = '.'.join(self.assertion_load_path.split('.')[:-1])
-        assertion_class_name = self.assertion_load_path.split('.')[-1]
-        assertion_file_name = self.assertion_load_path.split('.')[-2]
+        class_path = '.'.join(self.class_load_path.split('.')[:-1])
+        class_name = self.class_load_path.split('.')[-1]
+        class_file_name = self.class_load_path.split('.')[-2]
 
-        assertion_module = __import__(assertion_path, globals(), locals(), [assertion_file_name])
-        if not assertion_module or not hasattr(assertion_module, assertion_class_name):
+        try:
+            class_module = __import__(class_path, globals(), locals(), [class_file_name])
+            if not class_module or not hasattr(class_module, class_name):
+                return None
+
+            loaded_class = getattr(class_module, class_name)
+            if not loaded_class:
+                return None
+            return loaded_class
+        except ImportError:
             return None
-
-        loaded_assertion_class = getattr(assertion_module, assertion_class_name)
-        if not loaded_assertion_class:
-            return None
-
-        return loaded_assertion_class
 
     def __unicode__(self):
-        return u'{0}::{1}'.format(self.display_name, self.assertion_load_path)
+        return u'{0}::{1}'.format(self.display_name, self.class_load_path)
+
+
+class AssertionMeta(PeriodicalMeta):
+    pass
+
+
+class EventMeta(PeriodicalMeta):
+    pass
 
 
 class Solution(models.Model):

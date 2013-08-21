@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from ..models import Datum
+from ..models import Datum, EventMeta
 from ..events import Event
 
 
@@ -18,7 +18,9 @@ class Test_get_or_create_summary_datum(TestCase):
             def detect(self_, *args, **kwargs):
                 self.detect_return_value
 
-        self.event = TestEvent()
+        self.event_meta, created = EventMeta.objects.get_or_create(
+            display_name='Fancy event', class_load_path='foo.bar')
+        self.event = TestEvent(self.event_meta)
 
     def test_first_occurence(self):
         self.assertTrue(self.event.get_or_create_summary_datum())
@@ -51,7 +53,9 @@ class Test_detect_and_handle(TestCase):
             def handle_always(self_):
                 self.handle_always_called = True
 
-        self.event = TestEvent()
+        self.event_meta, created = EventMeta.objects.get_or_create(
+            display_name='Fancy event', class_load_path='foo.bar')
+        self.event = TestEvent(self.event_meta)
 
     def test_detect_false(self):
         """

@@ -38,7 +38,7 @@ class ModelAssertionTests(TestCase):
                 self.post_recovery_records.append(kwargs.pop('record'))
 
         self.assertion_meta = AssertionMeta.objects.create(
-            display_name='Mock model assertion', assertion_load_path='foo.bar', enabled=True)
+            display_name='Mock model assertion', class_load_path='foo.bar', enabled=True)
 
         self.assertion = TestModelAssertion(self.assertion_meta)
         self.issue = Issue.objects.create(failed_assertion=self.assertion_meta)
