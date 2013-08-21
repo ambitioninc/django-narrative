@@ -61,3 +61,20 @@ class Test_get_uptime_events(unittest.TestCase):
         self.assertEqual(
             expected_uptime_events,
             get_uptime_history())
+
+    def test_no_events(self):
+        # Make sure we have no heartbeats
+        Datum.objects.filter(
+            origin=heartbeat_details['origin'],
+            datum_name=heartbeat_details['datum_name']).delete()
+
+        mock_now = datetime.datetime(2013, 8, 21)
+
+        expected_uptime_events = [
+            (UptimeEventTypes.UP, mock_now),
+        ]
+
+        self.assertEqual(
+            expected_uptime_events,
+            get_uptime_history(utcnow=lambda: mock_now))
+

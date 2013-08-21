@@ -84,33 +84,36 @@ def get_uptime_history(utcnow=datetime.datetime.utcnow):
 
     clusters, threshold = detect_temporal_clusters(heartbeat_times)
 
-    # Put in descending order of clusters; the elements within the clusters
-    # are still in ascending order.
-    heartbeat_times.reverse()
+    if len(clusters) > 0:
+        # Put in descending order of clusters; the elements within the clusters
+        # are still in ascending order.
+        heartbeat_times.reverse()
 
-    history = []
+        history = []
 
-    for idx in range(0, len(clusters) - 1):
-        cluster = clusters[idx]
-        uptime = from_unix_timestamp(cluster[0])
-        downtime = from_unix_timestamp(cluster[-1])
+        for idx in range(0, len(clusters) - 1):
+            cluster = clusters[idx]
+            uptime = from_unix_timestamp(cluster[0])
+            downtime = from_unix_timestamp(cluster[-1])
+
+            history.append((UptimeEventTypes.UP, uptime))
+            history.append((UptimeEventTypes.DOWN, downtime))
+
+        # There is an edge case with the last cluster, where this is the most recent heartbeat
+        # and it was in the last few seconds; in this case, we cannot assume this was a downtime datum
+        last_cluster = clusters[-1]
+        uptime = from_unix_timestamp(last_cluster[0])
+        downtime = from_unix_timestamp(last_cluster[-1])
 
         history.append((UptimeEventTypes.UP, uptime))
-        history.append((UptimeEventTypes.DOWN, downtime))
 
-    # There is an edge case with the last cluster, where this is the most recent heartbeat
-    # and it was in the last few seconds; in this case, we cannot assume this was a downtime datum
-    last_cluster = clusters[-1]
-    uptime = from_unix_timestamp(last_cluster[0])
-    downtime = from_unix_timestamp(last_cluster[-1])
+        if (utcnow() - downtime).total_seconds() < threshold:
+            history.append((UptimeEventTypes.DOWN, downtime))
 
-    history.append((UptimeEventTypes.UP, uptime))
-
-    if (utcnow() - downtime).total_seconds() < threshold:
-        history.append((UptimeEventTypes.DOWN, downtime))
-
-    return history
+        return history
+    else:
+        return [(UptimeEventTypes.UP, utcnow())]
 
 
-def time_site_came_up(self, utcnow=datetime.datetime.utcnow):
+def time_site_came_up(utcnow=datetime.datetime.utcnow):
     return get_uptime_history(utcnow=utcnow)[0][1]
