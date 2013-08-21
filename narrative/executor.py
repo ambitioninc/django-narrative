@@ -43,7 +43,7 @@ class Executor(object):
 
 
     ### do_* methods for executing particular operations such as notifying individuals ###
-    def do_defer_to_admins(sellf, subject, message, message_html=None):
+    def do_defer_to_admins(self, subject, message, message_html=None):
         admin_group = Group.objects.get(name=settings.NARRATIVE_ADMIN_GROUP_NAME)
         admins = admin_group.user_set.all()
 
