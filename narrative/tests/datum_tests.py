@@ -12,7 +12,12 @@ class TestDatumTTLField(TestCase):
         def mock_get_utc_now(self_):
             return self.mock_utc_now
 
+        self.original_get_utc_now = Datum.get_utc_now
+
         Datum.get_utc_now = mock_get_utc_now
+
+    def tearDown(self):
+        Datum.get_utc_now = self.original_get_utc_now
 
     def test_saving_with_ttl_field(self):
         ttl = datetime.timedelta(days=1, hours=12)
@@ -34,8 +39,13 @@ class TestDatumManager(TestCase):
         def mock_get_utc_now(self_):
             return self.mock_utc_now
 
+        self.original_get_utc_now = Datum.get_utc_now
+
         Datum.get_utc_now = mock_get_utc_now
         DatumManager.get_utc_now = mock_get_utc_now
+
+    def tearDown(self):
+        Datum.get_utc_now = self.original_get_utc_now
 
     def test_clear_expired_data(self):
         # Create a bunch of expired data

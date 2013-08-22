@@ -1,4 +1,5 @@
 import abc
+import copy
 import datetime
 import json
 
@@ -17,6 +18,10 @@ class Event(object):
         pass
 
     @property
+    def summary_datum_ttl(self):
+        return None
+
+    @property
     def executor(self):
         return Executor()
 
@@ -27,10 +32,11 @@ class Event(object):
     def get_utc_now(self):
         return datetime.datetime.utcnow()
 
-    def summary(self, *args, **kwargs):
+    def instance_summary(self, *args, **kwargs):
         """
         Return any additional information we want to associate with this
-        event.
+        occurrence of this event; this is needed to separate this occurrence
+        from other occurrences of the same event.
         """
         return ''
 
@@ -47,10 +53,25 @@ class Event(object):
         pass
 
     def get_or_create_summary_datum(self, *args, **kwargs):
-        datum, created = Datum.objects.get_or_create(
-            origin=self.origin_name,
-            datum_name=self.event_meta.display_name,
-            datum_note_json=json.dumps(self.summary(*args, **kwargs)))
+        """
+        Create the summary datum to represent this occurrence of this event.
+        """
+        datum_kwargs = {
+            'origin': self.origin_name,
+            'datum_name': self.event_meta.display_name,
+            'datum_note_json': json.dumps(self.instance_summary(*args, **kwargs)),
+        }
+
+        defaults = copy.copy(datum_kwargs)
+
+        datum_kwargs['defaults'] = defaults
+
+        # If this event has defined a TTL for it's summary datum, then
+        # respect it.
+        if self.summary_datum_ttl:
+            defaults['ttl'] = self.summary_datum_ttl
+
+        datum, created = Datum.objects.get_or_create(**datum_kwargs)
 
         return created
 

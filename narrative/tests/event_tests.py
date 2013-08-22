@@ -1,3 +1,4 @@
+import datetime
 from unittest import TestCase
 
 from ..models import Datum, EventMeta
@@ -10,7 +11,13 @@ class Test_get_or_create_summary_datum(TestCase):
 
         self.detect_return_value = False
 
+        self.mock_ttl = None
+
         class TestEvent(Event):
+            @property
+            def summary_datum_ttl(self_):
+                return self.mock_ttl
+
             @property
             def event_name(self):
                 return 'Test Event'
@@ -28,6 +35,24 @@ class Test_get_or_create_summary_datum(TestCase):
     def test_no_duplicates(self):
         self.event.get_or_create_summary_datum()
         self.assertFalse(self.event.get_or_create_summary_datum())
+
+    def test_with_summary_datum_ttl(self):
+        self.mock_ttl = datetime.timedelta(hours=1)
+        self.assertTrue(self.event.get_or_create_summary_datum())
+
+        expected_expiration_time = datetime.datetime.utcnow() + self.mock_ttl
+        actual_expiration_time = Datum.objects.all()[0].expiration_time
+        difference_in_seconds = abs((
+            expected_expiration_time - actual_expiration_time).total_seconds())
+
+        self.assertTrue(difference_in_seconds < 1)
+
+    def test_without_summary_datum_ttl(self):
+        self.mock_ttl = None
+        self.assertTrue(self.event.get_or_create_summary_datum())
+        self.assertEqual(
+            None,
+            Datum.objects.all()[0].expiration_time)
 
 
 class Test_detect_and_handle(TestCase):
