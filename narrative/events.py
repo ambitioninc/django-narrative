@@ -17,6 +17,15 @@ class Event(object):
     def detect(self, *args, **kwargs):
         pass
 
+    @abc.abstractmethod
+    def instance_summary(self, *args, **kwargs):
+        """
+        Return any additional information we want to associate with this
+        occurrence of this event; this is needed to separate this occurrence
+        from other occurrences of the same event.
+        """
+        return {}
+
     @property
     def summary_datum_ttl(self):
         return None
@@ -31,14 +40,6 @@ class Event(object):
 
     def get_utc_now(self):
         return datetime.datetime.utcnow()
-
-    def instance_summary(self, *args, **kwargs):
-        """
-        Return any additional information we want to associate with this
-        occurrence of this event; this is needed to separate this occurrence
-        from other occurrences of the same event.
-        """
-        return ''
 
     def event_instance_detected(self):
         """
