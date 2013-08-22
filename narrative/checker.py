@@ -18,7 +18,7 @@ def detect_enabled_events(verbose=False):
     """
     process_periodicals(
         EventMeta.objects.filter(enabled=True),
-        verbose, process_method_name='detect_and_handle', true_copy='POSITIVE', false_copy='NEGATIVE')
+        verbose, process_method_name='detect_and_handle', true_copy='DETECTED', false_copy='NOT DETECTED')
 
 
 def process_periodicals(
