@@ -24,7 +24,6 @@ class Event(object):
     def origin_name(self):
         return self.__class__.__name__
 
-    ### Misc utilties for working with solutions ###
     def get_utc_now(self):
         return datetime.datetime.utcnow()
 
