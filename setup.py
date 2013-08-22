@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='narrative',
-    version='0.4.5',
+    version='0.4.6',
     packages=[
         'narrative',
         'narrative.batteries',
