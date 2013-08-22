@@ -17,4 +17,4 @@ class Command(BaseCommand):
         cleared_events = Event.objects.clear_expired()
 
         if options['verbose']:
-            print 'Cleared Events: {0}'.format(cleared_events)
+            print 'Cleared data: {0}'.format(cleared_events)
