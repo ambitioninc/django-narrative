@@ -2,8 +2,6 @@ import abc
 import datetime
 import json
 
-from pytz import utc as utc_tz
-
 from narrative.models import Datum
 from narrative.executor import Executor
 
@@ -28,7 +26,7 @@ class Event(object):
 
     ### Misc utilties for working with solutions ###
     def get_utc_now(self):
-        return utc_tz.localize(datetime.datetime.utcnow())
+        return datetime.datetime.utcnow()
 
     def summary(self, *args, **kwargs):
         """
@@ -70,3 +68,6 @@ class Event(object):
                 self.handle_once(*args, **kwargs)
 
             self.handle_always(*args, **kwargs)
+
+            return True
+        return False
