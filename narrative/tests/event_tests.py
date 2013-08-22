@@ -14,6 +14,9 @@ class Test_get_or_create_summary_datum(TestCase):
         self.mock_ttl = None
 
         class TestEvent(Event):
+            def instance_summary(self_, *args, **kwargs):
+                return {}
+
             @property
             def summary_datum_ttl(self_):
                 return self.mock_ttl
@@ -62,6 +65,8 @@ class Test_detect_and_handle(TestCase):
         self.event_instance_detected_called = False
 
         class TestEvent(Event):
+            def instance_summary(self_, *args, **kwargs):
+                return {}
             @property
             def event_name(self):
                 return 'Test Event'
