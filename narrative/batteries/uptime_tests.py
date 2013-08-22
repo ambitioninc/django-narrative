@@ -77,4 +77,3 @@ class Test_get_uptime_events(unittest.TestCase):
         self.assertEqual(
             expected_uptime_events,
             get_uptime_history(utcnow=lambda: mock_now))
-

@@ -37,10 +37,7 @@ class Executor(object):
         for step in action_sequence:
             action, kwargs = step
 
-            getattr(
-                self,
-                self.get_action_handler(action))(**kwargs)
-
+            getattr(self, self.get_action_handler(action))(**kwargs)
 
     ### do_* methods for executing particular operations such as notifying individuals ###
     def do_defer_to_admins(self, subject, message, message_html=None):
