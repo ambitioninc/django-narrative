@@ -2,7 +2,7 @@ from optparse import make_option
 
 from django.core.management.base import BaseCommand
 
-from narrative.models import Event
+from narrative.models import Datum
 
 
 class Command(BaseCommand):
@@ -14,7 +14,7 @@ class Command(BaseCommand):
         'Clear any expired events')
 
     def handle(self, *args, **options):
-        cleared_events = Event.objects.clear_expired()
+        cleared_events = Datum.objects.clear_expired()
 
         if options['verbose']:
             print 'Cleared data: {0}'.format(cleared_events)
