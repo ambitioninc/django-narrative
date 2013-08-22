@@ -50,9 +50,7 @@ class Test_get_or_create_summary_datum(TestCase):
     def test_without_summary_datum_ttl(self):
         self.mock_ttl = None
         self.assertTrue(self.event.get_or_create_summary_datum())
-        self.assertEqual(
-            None,
-            Datum.objects.all()[0].expiration_time)
+        self.assertEqual(None, Datum.objects.all()[0].expiration_time)
 
 
 class Test_detect_and_handle(TestCase):
