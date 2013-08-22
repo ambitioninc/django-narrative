@@ -61,8 +61,7 @@ class Test_detect_and_handle(TestCase):
 
         self.detect_return_value = False
 
-        self.handle_once_called = False
-        self.handle_always_called = False
+        self.event_instance_detected_called = False
 
         class TestEvent(Event):
             @property
@@ -72,11 +71,8 @@ class Test_detect_and_handle(TestCase):
             def detect(self_, *args, **kwargs):
                 return self.detect_return_value
 
-            def handle_once(self_):
-                self.handle_once_called = True
-
-            def handle_always(self_):
-                self.handle_always_called = True
+            def event_instance_detected(self_):
+                self.event_instance_detected_called = True
 
         self.event_meta, created = EventMeta.objects.get_or_create(
             display_name='Fancy event', class_load_path='foo.bar')
@@ -86,8 +82,7 @@ class Test_detect_and_handle(TestCase):
         """
         Verify that when detect returns False,
         1) no datums are created
-        2) handle_once is not called
-        3) handle_always is not called
+        2) event_instance_detected is not called
         """
         self.detect_return_value = False
 
@@ -99,15 +94,13 @@ class Test_detect_and_handle(TestCase):
         self.assertEqual(
             original_datum_count,
             Datum.objects.filter(origin=self.event.origin_name).count())
-        self.assertFalse(self.handle_once_called)
-        self.assertFalse(self.handle_always_called)
+        self.assertFalse(self.event_instance_detected_called)
 
     def test_first_detection(self):
         """
         Verify that when detect returns True the first time,
         1) a summary datum is created
-        2) handle_once is called
-        3) handle_always is called
+        2) event_instance_detected is called
         """
         self.detect_return_value = True
 
@@ -119,15 +112,13 @@ class Test_detect_and_handle(TestCase):
         self.assertEqual(
             original_datum_count + 1,
             Datum.objects.filter(origin=self.event.origin_name).count())
-        self.assertTrue(self.handle_once_called)
-        self.assertTrue(self.handle_always_called)
+        self.assertTrue(self.event_instance_detected_called)
 
     def test_second_detection(self):
         """
         Verify that when detect returns True the second time,
         1) a summary datum is *not* created
-        2) handle_once is *not* called
-        3) handle_always is called
+        2) event_instance_detected is *not* called
         """
         self.detect_return_value = True
 
@@ -137,13 +128,11 @@ class Test_detect_and_handle(TestCase):
         original_datum_count = Datum.objects.filter(
             origin=self.event.origin_name).count()
 
-        self.handle_once_called = False
-        self.handle_always_called = False
+        self.event_instance_detected_called = False
 
         self.event.detect_and_handle()
 
         self.assertEqual(
             original_datum_count,
             Datum.objects.filter(origin=self.event.origin_name).count())
-        self.assertFalse(self.handle_once_called)
-        self.assertTrue(self.handle_always_called)
+        self.assertFalse(self.event_instance_detected_called)

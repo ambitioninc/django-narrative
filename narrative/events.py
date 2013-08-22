@@ -40,15 +40,9 @@ class Event(object):
         """
         return ''
 
-    def handle_once(self):
+    def event_instance_detected(self):
         """
-        This method is called when the event is first detected.
-        """
-        pass
-
-    def handle_always(self):
-        """
-        This method is called everytime the event is detected.
+        This method is called when the event instance is first detected.
         """
         pass
 
@@ -85,9 +79,7 @@ class Event(object):
             created = self.get_or_create_summary_datum(*args, **kwargs)
 
             if created:
-                self.handle_once(*args, **kwargs)
-
-            self.handle_always(*args, **kwargs)
+                self.event_instance_detected(*args, **kwargs)
 
             return True
         return False
