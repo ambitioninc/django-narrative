@@ -67,6 +67,7 @@ class Test_detect_and_handle(TestCase):
         class TestEvent(Event):
             def instance_summary(self_, *args, **kwargs):
                 return {}
+
             @property
             def event_name(self):
                 return 'Test Event'
