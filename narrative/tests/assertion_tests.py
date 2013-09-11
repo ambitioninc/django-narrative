@@ -530,10 +530,9 @@ class DoMethodTests(TestCase):
 
         test_subject = 'test subject'
         test_message = 'test message'
-        test_hints = ['hint 1', 'hint 2']
 
         self.assertion.executor.do_defer_to_admins(
-            test_subject, test_message, test_hints)
+            test_subject, test_message)
 
         # Verify the emails were sent to the appropriate users
         self.assertEqual(

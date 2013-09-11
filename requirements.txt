@@ -1,5 +1,5 @@
 south==0.7.6
-django==1.4.3
+django==1.5.2
 django-nose
 pep8
 psycopg2==2.4.5
