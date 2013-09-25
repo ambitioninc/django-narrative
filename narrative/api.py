@@ -1,16 +1,16 @@
 from tastypie.resources import ModelResource
 from tastypie.authorization import Authorization
-from tastypie.authentication import SessionAuthentication, ApiKeyAuthentication, MultiAuthentication
+from tastypie.authentication import ApiKeyAuthentication
 
-from .models import Event
+from .models import Datum
 
 
-class EventResource(ModelResource):
+class DatumResource(ModelResource):
     class Meta:
-        queryset = Event.objects.all()
+        queryset = Datum.objects.all()
         urlconf_namespace = 'narrative'
-        resource_name = 'event'
+        resource_name = 'datum'
         authorization = Authorization()
-        authentication = MultiAuthentication(SessionAuthentication(), ApiKeyAuthentication())
+        authentication = ApiKeyAuthentication()
         allowed_methods = ['get', 'post']
         always_return_data = True
