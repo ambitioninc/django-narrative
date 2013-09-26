@@ -165,3 +165,4 @@ import datetime
 NARRATIVE_ADMIN_GROUP_NAME = 'Narrative Admins'
 NARRATIVE_REPLY_EMAIL_ADDRESS = 'noreply@example.com'
 NARRATIVE_HEARBEAT_TTL = datetime.timedelta(weeks=1)
+DEFAULT_NARRATIVE_DATUM_TTL = datetime.timedelta(weeks=4)
