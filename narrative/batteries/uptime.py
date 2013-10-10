@@ -24,6 +24,19 @@ def create_heartbeat():
         ttl=heartbeat_details['ttl'])
 
 
+def compute_interval_list(time_list):
+    """
+    Given a series of times, return the intervals between them as well
+    as the median interval.
+
+    NOTE: assumes that the time_list is sorted in ascending order.
+    """
+    interval_list = [time_list[idx] - time_list[idx - 1] for idx in range(1, len(time_list))]
+    interval_list_len = len(interval_list)
+
+    return interval_list, interval_list[int(interval_list_len / 2)]
+
+
 def detect_temporal_clusters(time_list):
     """
     Break the times in the time_list into a series of clusters based
@@ -35,17 +48,12 @@ def detect_temporal_clusters(time_list):
 
     Note: assumes that time_list is sorted in ascending order.
     """
-    time_list_len = len(time_list)
-
-    if time_list_len > 0:
-        interval_list = [time_list[idx] - time_list[idx - 1] for idx in range(1, time_list_len)]
-        interval_list_len = len(interval_list)
-
-        new_cluster_threshold = interval_list[int(interval_list_len / 2)]
+    if len(time_list) > 0:
+        interval_list, new_cluster_threshold = compute_interval_list(time_list)
 
         clusters = [[time_list[0]]]
 
-        for idx in range(1, time_list_len):
+        for idx in range(1, len(time_list)):
             if interval_list[idx-1] > new_cluster_threshold:
                 # The interval past is too much; start a new cluster
                 clusters.append([time_list[idx]])
