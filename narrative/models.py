@@ -315,6 +315,14 @@ class Issue(models.Model):
 
         return matching_steps
 
+    def get_non_pass_steps(self):
+        """
+        Return all steps that are not PASSes.
+        """
+        return filter(
+            lambda isr: isr.action_type != ResolutionStepActionType.PASS,
+            self.resolutionstep_set.order_by('created'))
+
 
 class ResolutionStep(models.Model):
     """
