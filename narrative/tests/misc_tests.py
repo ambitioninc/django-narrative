@@ -97,6 +97,6 @@ class IssueTests(TestCase):
             "There should be 4 issue resolution steps counting the PASS")
 
         self.assertEqual(
-            set(issue.non_pass_steps),
+            set(issue.get_non_pass_steps()),
             set([isr_1, isr_2, isr_3]),
             'There should only be two matching issue resolution steps')
