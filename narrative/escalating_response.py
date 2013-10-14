@@ -9,6 +9,4 @@ def construct_escalating_response(issue, response_map):
     """
     non_pass_steps = issue.get_non_pass_steps()
 
-    print 'constructing response', non_pass_steps
-
     return response_map.get(len(non_pass_steps), lambda x: None)(non_pass_steps)
