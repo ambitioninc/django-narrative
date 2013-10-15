@@ -192,7 +192,18 @@ class PeriodicalMeta(models.Model):
 
 
 class AssertionMeta(PeriodicalMeta):
-    pass
+    args_json = models.TextField(
+        blank=True, default='{}',
+        help_text=(u'JSON encoded named arguments'))
+
+    def get_args(self):
+        if self.args_json:
+            return json.loads(self.args_json)
+        else:
+            return {}
+
+    def set_args(self, args):
+        self.args_json = json.dumps(args)
 
 
 class EventMeta(PeriodicalMeta):
