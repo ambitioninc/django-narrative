@@ -172,7 +172,6 @@ class Assertion(object):
             self.executor.do_defer_to_admins(
                 'Assertion: {0}, Invalid step: {0}'.format(
                     self.assertion_meta.display_name, invalid_step))
-
         return valid
 
     def execute_solution(self, solution):
