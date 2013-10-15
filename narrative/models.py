@@ -229,6 +229,9 @@ class Solution(models.Model):
     # Time in which the solution was enacted
     enacted = models.DateTimeField(null=True, blank=True)
 
+    # Exception traceback if there was an error executing the solution
+    error_traceback = models.TextField(null=True, blank=True)
+
     def get_plan(self):
         if self.plan_json:
             return json.loads(self.plan_json)
@@ -260,6 +263,7 @@ class Solution(models.Model):
             'Diagnostic case name: {0}'.format(self.diagnostic_case_name),
             'Problem Description: {0}'.format(self.problem_description),
             'Enacted: {0}'.format(self.enacted or 'Never'),
+            'Status: {0}'.format('FAILED' if self.error_traceback else 'SUCCESS'),
             'Plan: {0}'.format(plan_explanation_string),
         ]
 

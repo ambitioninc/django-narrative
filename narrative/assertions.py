@@ -1,6 +1,8 @@
 import abc
 import copy
 import datetime
+import sys
+import traceback
 
 from pytz import utc as utc_tz
 
@@ -179,7 +181,16 @@ class Assertion(object):
         Validate a solution, then step through and execute each of it's steps.
         """
         if self.validate_solution(solution):
-            self.executor.execute(solution.get_plan())
+            try:
+                self.executor.execute(solution.get_plan())
+            except:
+                # If an error occurrs executing the solution, store the traceback information.
+                exc_type, exc_value, tb = sys.exc_info()
+
+                solution.error_traceback = '\n'.join(
+                    traceback.format_tb(tb) + [
+                        str(exc_type),
+                        str(exc_value)])
 
             solution.enacted = self.get_utc_now()
             solution.save()
