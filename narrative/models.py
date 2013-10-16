@@ -147,12 +147,13 @@ class PeriodicalMeta(models.Model):
     """
     class Meta:
         abstract = True
+        unique_together = ('display_name', 'class_load_path',)
 
     # Display name for humans
-    display_name = models.CharField(max_length=64, unique=True)
+    display_name = models.CharField(max_length=64)
 
     # Python import path to the periodic class
-    class_load_path = models.CharField(max_length=64, unique=True, default='')
+    class_load_path = models.CharField(max_length=64, default='')
 
     # Determines if this periodic should ever be checked
     enabled = models.BooleanField(default=False)
