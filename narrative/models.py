@@ -20,6 +20,24 @@ class StatusType(object):
     def status_by_id(cls, id_):
         return find_tuple(cls.types, id_, 0)[1]
 
+    @classmethod
+    def status_by_name(cls, name):
+        return find_tuple(cls.types, name, 1)[0]
+
+
+class DatumLogLevel(StatusType):
+    DEBUG = 0
+    INFO = 1
+    WARN = 2
+    ERROR = 3
+
+    types = (
+        (ERROR, 'Error'),
+        (WARN, 'Warn'),
+        (INFO, 'Info'),
+        (DEBUG, 'Debug'),
+    )
+
 
 class EventStatusType(StatusType):
     SUCCESS = 0
@@ -118,6 +136,8 @@ class Datum(models.Model):
 
     # An ID to tie particular datums together
     thread_id = models.CharField(max_length=36, null=True, blank=True)
+
+    log_level = models.IntegerField(choices=DatumLogLevel.types, default=DatumLogLevel.DEBUG)
 
     objects = DatumManager()
 

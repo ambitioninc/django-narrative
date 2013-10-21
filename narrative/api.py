@@ -8,7 +8,7 @@ from tastypie.resources import ModelResource
 from tastypie.authorization import Authorization
 from tastypie.authentication import ApiKeyAuthentication
 
-from .models import Datum
+from .models import Datum, DatumLogLevel
 
 
 class DatumResource(ModelResource):
@@ -20,6 +20,21 @@ class DatumResource(ModelResource):
         authentication = ApiKeyAuthentication()
         allowed_methods = ['get', 'post']
         always_return_data = True
+
+    def build_filters(self, filters=None):
+        filters = filters or {}
+
+        orm_filters = super(DatumResource, self).build_filters(filters)
+
+        if 'level' in filters:
+            status = ''
+            try:
+                status = DatumLogLevel.status_by_name(filters['level'].title())
+            except:
+                pass
+            orm_filters['log_level'] = status
+
+        return orm_filters
 
     def hydrate(self, bundle):
         ttl = settings.DEFAULT_NARRATIVE_DATUM_TTL
