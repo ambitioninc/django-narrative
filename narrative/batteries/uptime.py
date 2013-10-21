@@ -17,11 +17,23 @@ heartbeat_details = {
 }
 
 
-def create_heartbeat():
-    Datum.objects.create(
-        origin=heartbeat_details['origin'],
-        datum_name=heartbeat_details['datum_name'],
-        ttl=heartbeat_details['ttl'])
+def create_heartbeat(get_utc_now=datetime.datetime.utcnow):
+    """
+    Create a datum recording the heartbeat, if sufficient time
+    (as specified by NARRATIVE_HEARTBEAT_MIN_INTERVAL) has passed
+    since the last heartbeat was created.
+    """
+    start_of_non_creation_window = get_utc_now() - settings.NARRATIVE_HEARTBEAT_MIN_INTERVAL
+
+    if not Datum.objects.filter(
+            origin=heartbeat_details['origin'],
+            datum_name=heartbeat_details['datum_name'],
+            timestamp__gte=start_of_non_creation_window).exists():
+        # No recent heartbeat, so create a new one
+        Datum.objects.create(
+            origin=heartbeat_details['origin'],
+            datum_name=heartbeat_details['datum_name'],
+            ttl=heartbeat_details['ttl'])
 
 
 def compute_interval_list(time_list):

@@ -165,4 +165,7 @@ import datetime
 NARRATIVE_ADMIN_GROUP_NAME = 'Narrative Admins'
 NARRATIVE_REPLY_EMAIL_ADDRESS = 'noreply@example.com'
 NARRATIVE_HEARBEAT_TTL = datetime.timedelta(weeks=1)
+
+# This determins how often to create a heartbeat datum
+NARRATIVE_HEARTBEAT_MIN_INTERVAL = datetime.timedelta(minutes=30)
 DEFAULT_NARRATIVE_DATUM_TTL = datetime.timedelta(weeks=4)
