@@ -2,7 +2,7 @@ import datetime
 
 from django.conf import settings
 
-from narrative.models import Datum
+from narrative.models import Datum, DatumLogLevel, log_datum
 
 
 class UptimeEventTypes:
@@ -30,10 +30,11 @@ def create_heartbeat(get_utc_now=datetime.datetime.utcnow):
             datum_name=heartbeat_details['datum_name'],
             timestamp__gte=start_of_non_creation_window).exists():
         # No recent heartbeat, so create a new one
-        Datum.objects.create(
+        log_datum(
             origin=heartbeat_details['origin'],
             datum_name=heartbeat_details['datum_name'],
-            ttl=heartbeat_details['ttl'])
+            ttl=heartbeat_details['ttl'],
+            log_level=DatumLogLevel.INFO)
 
 
 def compute_interval_list(time_list):

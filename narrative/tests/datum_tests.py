@@ -2,7 +2,7 @@ import datetime
 
 from django.test import TestCase
 
-from ..models import Datum, DatumManager
+from ..models import Datum, DatumManager, DatumLogLevel, NarrativeConfig, log_datum
 
 
 class TestDatumTTLField(TestCase):
@@ -83,3 +83,38 @@ class TestDatumManager(TestCase):
 
         self.assertEqual(
             Datum.objects.filter(id__in=datum_id_list).count(), 0)
+
+
+class Test_log_datum(TestCase):
+    def test_creating_datum_above_min_log_level(self):
+        original_count = Datum.objects.count()
+
+        NarrativeConfig.objects.create(minimum_datum_log_level=DatumLogLevel.DEBUG)
+
+        log_datum(origin='test', datum_name='test_datum', log_level=DatumLogLevel.WARN)
+
+        self.assertEqual(
+            original_count + 1,
+            Datum.objects.count())
+
+    def test_creating_datum_below_min_log_level(self):
+        original_count = Datum.objects.count()
+
+        NarrativeConfig.objects.create(minimum_datum_log_level=DatumLogLevel.DEBUG)
+
+        log_datum(origin='test', datum_name='test_datum', log_level=DatumLogLevel.TRACE)
+
+        self.assertEqual(
+            original_count,
+            Datum.objects.count())
+
+    def test_creating_datum_with_note(self):
+        test_note = {
+            'fruit': 'apple',
+        }
+        NarrativeConfig.objects.create(minimum_datum_log_level=DatumLogLevel.DEBUG)
+
+        log_datum(origin='test', datum_name='test_datum', log_level=DatumLogLevel.INFO, note=test_note)
+
+        new_datum = Datum.objects.order_by('-timestamp')[0]
+        self.assertEqual(test_note, new_datum.get_note())
