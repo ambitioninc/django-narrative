@@ -26,10 +26,11 @@ class StatusType(object):
 
 
 class DatumLogLevel(StatusType):
-    DEBUG = 0
-    INFO = 1
-    WARN = 2
-    ERROR = 3
+    TRACE = 0
+    DEBUG = 1
+    INFO = 2
+    WARN = 3
+    ERROR = 4
 
     types = (
         (ERROR, 'Error'),
@@ -86,6 +87,12 @@ class ResolutionStepActionType(StatusType):
         (EXEC, 'Exec'),
         (PASS, 'Pass'),
     )
+
+
+class NarrativeConfig(models.Model):
+    # Determins what the minimum log_level allowed to be created by the log_datum function
+    minimum_datum_log_level = models.IntegerField(
+        choices=DatumLogLevel.types, default=DatumLogLevel.INFO)
 
 
 class DatumManager(models.Manager):
@@ -158,6 +165,30 @@ class Datum(models.Model):
         note_snippet = self.datum_note_json[:50] if self.datum_note_json else ''
         return u'origin:{0} datum_name:{1} note:{2}'.format(
             self.origin, self.datum_name, note_snippet)
+
+
+def log_datum(*args, **kwargs):
+    """
+    Handle logging a datum.  It is better to use this method than to manually create datums,
+    because it provides a central place for controlling which datums should or should not be
+    created based the logging level set in the NarrativeConfig.
+    """
+    minimum_datum_log_level = NarrativeConfig.objects.filter()[0].minimum_datum_log_level
+
+    note = None
+    datum = None
+
+    if kwargs['log_level'] >= minimum_datum_log_level:
+        note = kwargs.pop('note') if 'note' in kwargs else None
+
+        datum = Datum(*args, **kwargs)
+
+        if note:
+            datum.set_note(note)
+
+        datum.save()
+
+    return datum
 
 
 class PeriodicalMeta(models.Model):
@@ -241,7 +272,7 @@ class Solution(models.Model):
     # What was the name of the diagnostic method that generated this solution?
     diagnostic_case_name = models.CharField(max_length=64)
 
-    # Description of the problem this solution addresses
+    # Description of the    problem this solution addresses
     problem_description = models.CharField(max_length=128)
 
     # The steps (stored as json) for this solution
