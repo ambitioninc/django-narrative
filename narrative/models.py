@@ -272,7 +272,7 @@ class Solution(models.Model):
     # What was the name of the diagnostic method that generated this solution?
     diagnostic_case_name = models.CharField(max_length=64)
 
-    # Description of the    problem this solution addresses
+    # Description of the problem this solution addresses
     problem_description = models.CharField(max_length=128)
 
     # The steps (stored as json) for this solution
