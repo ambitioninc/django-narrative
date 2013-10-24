@@ -144,7 +144,7 @@ class Datum(models.Model):
     # An ID to tie particular datums together
     thread_id = models.CharField(max_length=36, null=True, blank=True)
 
-    log_level = models.IntegerField(choices=DatumLogLevel.types, default=DatumLogLevel.DEBUG)
+    log_level = models.IntegerField(choices=DatumLogLevel.types, default=DatumLogLevel.INFO)
 
     objects = DatumManager()
 
