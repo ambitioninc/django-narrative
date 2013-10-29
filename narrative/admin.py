@@ -9,3 +9,4 @@ from . import models
 site.register(models.Datum)
 site.register(models.AssertionMeta)
 site.register(models.EventMeta)
+site.register(models.NarrativeConfig)
