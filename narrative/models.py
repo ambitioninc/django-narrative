@@ -403,6 +403,9 @@ class ResolutionStep(models.Model):
 
     created = models.DateTimeField(auto_now_add=True)
 
+    # The reason this step was selected; just human readable documentation
+    reason = models.CharField(max_length=64, default=None, null=True, blank=True)
+
     def __unicode__(self):
         return u'Action: {0}, Solution: {1}'.format(
             ResolutionStepActionType.status_by_id(self.action_type), self.solution)
@@ -420,6 +423,7 @@ class ResolutionStep(models.Model):
         explanation = [
             'Action Type: {0}'.format(ResolutionStepActionType.status_by_id(self.action_type)),
             'Solution: {0}'.format(solution_explanation),
+            'Reason: {0}'.format(self.reason)
         ]
 
         separator = '\n{0}'.format(tabs)
