@@ -348,7 +348,8 @@ class Issue(models.Model):
             self.failed_assertion.display_name, IssueStatusType.status_by_id(self.status))
 
     def explain(self, tabs=''):
-        resolution_separator = '\n{0}    '.format(tabs)
+        step_separator = '    ' + '-' * 15
+        resolution_separator = '\n{0}\n{1}    '.format(step_separator, tabs)
         resolution_steps = resolution_separator + resolution_separator.join(
             [step.explain(tabs + '    ') for step in self.resolutionstep_set.order_by('created')])
 
