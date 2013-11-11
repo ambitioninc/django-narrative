@@ -325,6 +325,14 @@ class Solution(models.Model):
         return separator.join(explanation)
 
 
+class IssueManager(models.Manager):
+    @property
+    def current_issues(self):
+        resolved_list = [IssueStatusType.RESOLVED, IssueStatusType.WONT_FIX]
+
+        return self.exclude(status__in=resolved_list)
+
+
 class Issue(models.Model):
     """
     Assertions can find problems in the system; these
@@ -338,6 +346,8 @@ class Issue(models.Model):
 
     created_timestamp = models.DateTimeField(auto_now_add=True)
     resolved_timestamp = models.DateTimeField(null=True, blank=True)
+
+    objects = IssueManager()
 
     def __unicode__(self):
         return u'Issue - {0} ({1})'.format(

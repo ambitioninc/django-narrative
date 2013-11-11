@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from ..models import AssertionMeta, Solution, Issue, ResolutionStep, ResolutionStepActionType
+from ..models import AssertionMeta, Solution, Issue, ResolutionStep, ResolutionStepActionType, IssueStatusType
 
 
 class IssueTests(TestCase):
@@ -100,3 +100,25 @@ class IssueTests(TestCase):
             set(issue.get_non_pass_steps()),
             set([isr_1, isr_2, isr_3]),
             'There should only be two matching issue resolution steps')
+
+    def test_current_issues(self):
+        issue1 = Issue.objects.create(failed_assertion=self.assertion_meta, status=IssueStatusType.OPEN)
+        issue2 = Issue.objects.create(failed_assertion=self.assertion_meta, status=IssueStatusType.SOLUTION_APPLIED)
+        issue3 = Issue.objects.create(failed_assertion=self.assertion_meta, status=IssueStatusType.IMPASSE)
+        Issue.objects.create(failed_assertion=self.assertion_meta, status=IssueStatusType.RESOLVED)
+        Issue.objects.create(failed_assertion=self.assertion_meta, status=IssueStatusType.WONT_FIX)
+
+        self.assertEqual(
+            5,
+            Issue.objects.count(),
+            'There should be 5 total issues')
+
+        self.assertEqual(
+            3,
+            len(Issue.objects.current_issues),
+            'There should be 3 current issues')
+
+        self.assertEqual(
+            set([issue1, issue2, issue3]),
+            set(Issue.objects.current_issues),
+            'There should only be three current issues')
