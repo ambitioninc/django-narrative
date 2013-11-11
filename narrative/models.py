@@ -33,6 +33,7 @@ class DatumLogLevel(StatusType):
     ERROR = 4
 
     types = (
+        (TRACE, 'Trace'),
         (ERROR, 'Error'),
         (WARN, 'Warn'),
         (INFO, 'Info'),
