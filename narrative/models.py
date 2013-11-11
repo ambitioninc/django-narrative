@@ -423,7 +423,7 @@ class ResolutionStep(models.Model):
         explanation = [
             'Action Type: {0}'.format(ResolutionStepActionType.status_by_id(self.action_type)),
             'Solution: {0}'.format(solution_explanation),
-            'Reason: {0}'.format(self.reason)
+            'Reason: {0}'.format(self.reason),
         ]
 
         separator = '\n{0}'.format(tabs)
