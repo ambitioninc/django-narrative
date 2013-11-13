@@ -451,3 +451,5 @@ class ModelIssue(Issue):
     model_type = models.ForeignKey(ContentType)
     model_id = models.PositiveIntegerField()
     model = generic.GenericForeignKey('model_type', 'model_id')
+
+    objects = IssueManager()
