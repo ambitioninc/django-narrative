@@ -90,10 +90,17 @@ class ResolutionStepActionType(StatusType):
     )
 
 
+class NarrativeConfigManager(models.Manager):
+    def get_minimum_log_level(self):
+        return self.all()[0].minimum_datum_log_level
+
+
 class NarrativeConfig(models.Model):
-    # Determins what the minimum log_level allowed to be created by the log_datum function
+    # Determines what the minimum log_level allowed to be created by the log_datum function
     minimum_datum_log_level = models.IntegerField(
         choices=DatumLogLevel.types, default=DatumLogLevel.INFO)
+
+    objects = NarrativeConfigManager()
 
 
 class DatumManager(models.Manager):
@@ -130,7 +137,7 @@ class Datum(models.Model):
     # Additional information about the datum; this is very datum specific
     # This approach, storing json in a textfield and having an
     # explicit accessor and mutator, is very ugly.  Really this is because
-    # we are storign non-structured/sparse data in a relational format.
+    # we are storing non-structured/sparse data in a relational format.
     datum_note_json = models.TextField(null=True, blank=True, default=None)
 
     def get_note(self):
