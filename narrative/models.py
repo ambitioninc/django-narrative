@@ -10,7 +10,8 @@ from django.db import models
 
 
 def find_tuple(tuple_list, key, which):
-    return filter(lambda tple: tple[which] == key, tuple_list)[0]
+    filtered_list = filter(lambda tple: tple[which] == key, tuple_list)
+    return filtered_list[0] if len(filtered_list) else None
 
 
 class StatusType(object):
@@ -22,7 +23,8 @@ class StatusType(object):
 
     @classmethod
     def status_by_name(cls, name):
-        return find_tuple(cls.types, name, 1)[0]
+        status = find_tuple(cls.types, name.title(), 1)
+        return status[0] if status is not None else NarrativeConfig.objects.get_minimum_log_level()
 
 
 class DatumLogLevel(StatusType):
