@@ -1,10 +1,10 @@
 import json
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from tastypie.exceptions import ImmediateHttpResponse
 from ambition.utils.views import AjaxFormView
 from narrative.api import DatumResource
-from narrative.models import Datum, NarrativeConfigManager, NarrativeConfig
+from narrative.models import Datum, NarrativeConfigManager, NarrativeConfig, DatumLogLevel
 
 
 class LogView(AjaxFormView):
@@ -24,24 +24,36 @@ class LogView(AjaxFormView):
 
         @return: A json response
         """
-        # determine how the data is based on the headers and build the expected post data for a datum
-        # we only support json right now
-        content_format = request.GET.get('format', 'json')
-        if content_format == 'json':
-            # Decode the post so we can check the log level
-            post_content = json.loads(request.body)
+        # Get the minimum log level
+        minimum_log_level = NarrativeConfig.objects.get_minimum_log_level()
+        log_level = minimum_log_level
 
-            # Get the minimum log level
-            minimum_log_level = NarrativeConfig.objects.get_minimum_log_level()
-            log_level = post_content.get('log_level', minimum_log_level)
-
-            # Log level isn't high enough so ignore it
-            if log_level < minimum_log_level:
-                return self.get_response()
+        # Determine the data format based on headers and send the correct data to an api for processing
+        # NOTE: We only support json right now
+        content_type = request.META.get('CONTENT_TYPE', 'application/json')
+        if content_type == 'application/json':
             try:
-                response = DatumResource().dispatch_list(request)
-                return response
-            except ImmediateHttpResponse, e:
-                return e.response
+                # Decode the post so we can check the log level
+                post_content = json.loads(request.body)
+            except Exception:
+                return HttpResponseBadRequest('Invalid json')
+
+            # Determine the log level
+            if type(post_content) is dict:
+                log_level = post_content.get('log_level', minimum_log_level)
+
+            if type(log_level) in [str, unicode]:
+                log_level = DatumLogLevel.status_by_name(log_level)
         else:
-            raise ImmediateHttpResponse(HttpResponse('Format not supported'))
+            return HttpResponseBadRequest('Format not supported')
+
+        # Check if the log level is high enough to store
+        if log_level < minimum_log_level:
+            # Log level isn't high enough so ignore it
+            return self.get_response()
+        try:
+            # Send the data to the api to be logged
+            response = DatumResource().dispatch_list(request)
+            return response
+        except ImmediateHttpResponse, e:
+            return e.response

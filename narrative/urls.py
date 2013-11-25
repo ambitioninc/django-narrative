@@ -1,10 +1,10 @@
 from django.conf.urls import patterns, url, include
-from tastypie.api import Api
+from tastypie.api import NamespacedApi
 from . import api
 from narrative import views
 
 
-narrative_api = Api(api_name='api')
+narrative_api = NamespacedApi(api_name='api', urlconf_namespace='narrative')
 narrative_api.register(api.DatumResource())
 
 urlpatterns = patterns(
