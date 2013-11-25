@@ -37,6 +37,10 @@ class DatumResource(ModelResource):
         return orm_filters
 
     def hydrate(self, bundle):
+        # Convert log level from string to int
+        if type(bundle.data.get('log_level')) in [str, unicode]:
+            bundle.data['log_level'] = DatumLogLevel.status_by_name(bundle.data.get('log_level'))
+
         ttl = settings.DEFAULT_NARRATIVE_DATUM_TTL
 
         # Override the default ttl if one is provided
