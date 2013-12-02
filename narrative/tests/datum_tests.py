@@ -5,7 +5,6 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
 from django.test import TestCase
-import requests
 from tastypie.models import ApiKey
 
 from ..models import Datum, DatumManager, DatumLogLevel, NarrativeConfig, log_datum
