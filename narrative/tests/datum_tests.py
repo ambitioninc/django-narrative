@@ -130,7 +130,7 @@ class TestLogApi(TestCase):
     def setUp(self):
         super(TestLogApi, self).setUp()
         self.user = User.objects.create(username='test_user', password='password')
-        self.api_key = ApiKey.objects.create(user=self.user)
+        self.api_key = ApiKey.objects.create(user=self.user, created=datetime.datetime.utcnow())
         self.params = {
             'username': self.user.username,
             'api_key': self.api_key.key,
