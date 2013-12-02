@@ -1,13 +1,13 @@
 import json
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import View
 from tastypie.exceptions import ImmediateHttpResponse
-from ambition.utils.views import AjaxFormView
 from narrative.api import DatumResource
-from narrative.models import Datum, NarrativeConfigManager, NarrativeConfig, DatumLogLevel
+from narrative.models import NarrativeConfig, DatumLogLevel
 
 
-class LogView(AjaxFormView):
+class LogView(View):
     """
 
     """
@@ -50,7 +50,9 @@ class LogView(AjaxFormView):
         # Check if the log level is high enough to store
         if log_level < minimum_log_level:
             # Log level isn't high enough so ignore it
-            return self.get_response()
+            return HttpResponse(json.dumps({
+                'success': True
+            }), mimetype='application/json')
         try:
             # Send the data to the api to be logged
             response = DatumResource().dispatch_list(request)
