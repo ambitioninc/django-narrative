@@ -214,7 +214,7 @@ class PeriodicalMeta(models.Model):
     display_name = models.CharField(max_length=64)
 
     # Python import path to the periodic class
-    class_load_path = models.CharField(max_length=64, default='')
+    class_load_path = models.CharField(max_length=96, default='')
 
     # Determines if this periodic should ever be checked
     enabled = models.BooleanField(default=False)
