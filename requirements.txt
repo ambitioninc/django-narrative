@@ -8,4 +8,4 @@ pytz==2012h
 django_extensions
 Werkzeug==0.8.3
 
-git+git://github.com/toastdriven/django-tastypie.git@504a48722eff1bef6df90a296daa2d1f1d557b1c
+git+git://github.com/toastdriven/django-tastypie.git@2a07c3d84746e0799cc3a25ec34fb36b4bbe067f

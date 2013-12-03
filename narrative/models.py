@@ -10,7 +10,8 @@ from django.db import models
 
 
 def find_tuple(tuple_list, key, which):
-    return filter(lambda tple: tple[which] == key, tuple_list)[0]
+    filtered_list = filter(lambda tple: tple[which] == key, tuple_list)
+    return filtered_list[0] if len(filtered_list) else None
 
 
 class StatusType(object):
@@ -22,7 +23,8 @@ class StatusType(object):
 
     @classmethod
     def status_by_name(cls, name):
-        return find_tuple(cls.types, name, 1)[0]
+        status = find_tuple(cls.types, name.title(), 1)
+        return status[0] if status is not None else None
 
 
 class DatumLogLevel(StatusType):
@@ -39,6 +41,11 @@ class DatumLogLevel(StatusType):
         (INFO, 'Info'),
         (DEBUG, 'Debug'),
     )
+
+    @classmethod
+    def status_by_name(cls, name):
+        status = find_tuple(cls.types, name.title(), 1)
+        return status[0] if status is not None else NarrativeConfig.objects.get_minimum_log_level()
 
 
 class EventStatusType(StatusType):
@@ -90,10 +97,17 @@ class ResolutionStepActionType(StatusType):
     )
 
 
+class NarrativeConfigManager(models.Manager):
+    def get_minimum_log_level(self):
+        return self.all()[0].minimum_datum_log_level
+
+
 class NarrativeConfig(models.Model):
-    # Determins what the minimum log_level allowed to be created by the log_datum function
+    # Determines what the minimum log_level allowed to be created by the log_datum function
     minimum_datum_log_level = models.IntegerField(
         choices=DatumLogLevel.types, default=DatumLogLevel.INFO)
+
+    objects = NarrativeConfigManager()
 
 
 class DatumManager(models.Manager):
@@ -130,7 +144,7 @@ class Datum(models.Model):
     # Additional information about the datum; this is very datum specific
     # This approach, storing json in a textfield and having an
     # explicit accessor and mutator, is very ugly.  Really this is because
-    # we are storign non-structured/sparse data in a relational format.
+    # we are storing non-structured/sparse data in a relational format.
     datum_note_json = models.TextField(null=True, blank=True, default=None)
 
     def get_note(self):
