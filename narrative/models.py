@@ -44,10 +44,8 @@ class DatumLogLevel(StatusType):
 
     @classmethod
     def status_by_name(cls, name):
-        status = StatusType.status_by_name(name)
-        if status is None:
-            return NarrativeConfig.objects.get_minimum_log_level()
-        return status
+        status = find_tuple(cls.types, name.title(), 1)
+        return status[0] if status is not None else NarrativeConfig.objects.get_minimum_log_level()
 
 
 class EventStatusType(StatusType):
