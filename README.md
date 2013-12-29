@@ -58,40 +58,6 @@ You can create Datums directly, but this is not recommended because it bypasses 
     datum.save()
 
 
-## Working with assertions ##
-
-Once your've installed narrative, take the following steps to use Assertions in your application:
-1) Create an Assertion subclass
-2) Create an AssertionMeta entry for your Assertion
-3) Run `check_assertions` periodically to check all defined and enabled Assertions
-
-
-### Quick example ###
-
-Suppose you have an external application component that regularly sends an application heartbeat to your system.  You would like to know when the heartbeat goes away and what went wrong.
-
-You might create an assertion that looks something like this:
-
-    from narrative.assertions import Assertion
-    from narrative.models import ResolutionStep, Solution
-
-    class AgentRunningAssertion(Assertion):
-        def check(self):
-            return your_logic_to_check_for_missing_heartbeat()
-
-        def diagnostic_case_agent_quiet(self, current_issue, *args, **kwargs):
-            return ResolutionStep.objects.create(
-                issue=current_issue, solution=Solution.objects.create(plan=plan))
-
-Once your code is ready, create an `AssertionMeta` in your database to track this Assertion:
-
-    AssertionMeta.objects.create(
-        display_name='Tracking external Agent',
-        class_load_path='PYTHON.PATH.TO.AgentRunningAssertion',
-        'enabled': True,
-        'check_interval_seconds': 3600)         # Check this assertion every hour
-
-
 ## Working with events ##
 
 Once your've installed narrative, take the following steps to use Events in your application:
@@ -133,3 +99,79 @@ Once your code is ready, create an `EventMeta` in your database to track this Ev
         class_load_path='PYTHON.PATH.TO.ProcessingFailedEvent',
         'enabled': True,
         'check_interval_seconds': 3600)         # Check this event every hour
+
+
+## Working with assertions ##
+
+`Assertions` are more heavyweight than `Events`; they are used for tracking/dealing with ongoing misbehavior.  To do so, narrative associates
+each failing `Assertion` with an `Issue` in the database, until the `Assertion` begins passing again.  The next time the `Assertion` fails, a new
+issue is created to reprent this.
+
+Once your've installed narrative, take the following steps to use Assertions in your application:
+1) Create an Assertion subclass
+2) Create an AssertionMeta entry for your Assertion
+3) Run `check_assertions` periodically to check all defined and enabled Assertions
+
+
+### Quick example ###
+
+Suppose you have an external application component that regularly sends an application heartbeat to your system.  You would like to know when the heartbeat goes away and what went wrong.
+
+You might create an assertion that looks something like this:
+
+    from narrative.assertions import Assertion
+    from narrative.models import ResolutionStep, Solution
+
+    class AgentRunningAssertion(Assertion):
+        def check(self):
+            return your_logic_to_check_for_missing_heartbeat()
+
+        def diagnostic_case_agent_quiet(self, current_issue, *args, **kwargs):
+            return ResolutionStep.objects.create(
+                issue=current_issue, solution=Solution.objects.create(plan=plan))
+
+Once your code is ready, create an `AssertionMeta` in your database to track this Assertion:
+
+    AssertionMeta.objects.create(
+        display_name='Tracking external Agent',
+        class_load_path='PYTHON.PATH.TO.AgentRunningAssertion',
+        'enabled': True,
+        'check_interval_seconds': 3600)         # Check this assertion every hour
+
+
+## Working with Issues ##
+
+To track an ongoing problem, narrative associates each failing `Assertion` with an `Issue` in the database, until the `Assertion` begins passing again.
+The next time the `Assertion` fails, a new issue is created to reprent this.
+
+The `Issue` model manager has a `current_issues` property to access all currently ongoing-issues.
+
+Issues possess an `explain` method for returning a human readable summary of the problem.
+
+
+### Quick example ###
+
+    >>> print issue.explain()
+
+    Failed Assertion: Agent Updates Arriving
+    Status: Resolved
+    Created: 2013-11-19 14:07:56.622484
+    Resolved: 2013-11-19 14:22:57.345463
+    Resolution Steps:
+        ---------------
+        Action Type: Exec
+        Solution: Diagnostic case name:
+            Problem Description:
+            Enacted: 2013-11-19 14:07:57.811908
+            Status: SUCCESS
+            Plan:
+                notify_devops
+        Reason: None
+        ---------------
+        Action Type: Pass
+        Solution: None
+        Reason: Undefined case in escalating response
+        ---------------
+        Action Type: Pass
+        Solution: None
+        Reason: Undefined case in escalating response
