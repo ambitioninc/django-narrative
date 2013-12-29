@@ -27,8 +27,8 @@ can be extended to provide interfaces to externa services.
 
 # Installing narrative #
 
-1) Install django-narrative
-2) Add 'narrative' to your `INSTALLED_APPS`
+1. Install django-narrative
+2. Add 'narrative' to your `INSTALLED_APPS`
 
 
 ## Working with Datums ##
@@ -61,9 +61,9 @@ You can create Datums directly, but this is not recommended because it bypasses 
 ## Working with events ##
 
 Once your've installed narrative, take the following steps to use Events in your application:
-1) Create an Event subclass
-2) Create an EventMeta entry for your Assertion
-3) Run `check_events` periodically to check all defined and enabled Assertions
+1. Create an Event subclass
+2. Create an EventMeta entry for your Assertion
+3. Run `check_events` periodically to check all defined and enabled Assertions
 
 
 ### Quick example ###
@@ -108,9 +108,9 @@ each failing `Assertion` with an `Issue` in the database, until the `Assertion` 
 issue is created to reprent this.
 
 Once your've installed narrative, take the following steps to use Assertions in your application:
-1) Create an Assertion subclass
-2) Create an AssertionMeta entry for your Assertion
-3) Run `check_assertions` periodically to check all defined and enabled Assertions
+1. Create an Assertion subclass
+2. Create an AssertionMeta entry for your Assertion
+3. Run `check_assertions` periodically to check all defined and enabled Assertions
 
 
 ### Quick example ###
