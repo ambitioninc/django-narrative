@@ -228,6 +228,19 @@ class PeriodicalMeta(models.Model):
     check_interval_seconds = models.IntegerField(default=3600)
     last_check = models.DateTimeField(default=datetime.datetime(1970, 1, 1))
 
+    args_json = models.TextField(
+        blank=True, default='{}',
+        help_text=(u'JSON encoded named arguments'))
+
+    def get_args(self):
+        if self.args_json:
+            return json.loads(self.args_json)
+        else:
+            return {}
+
+    def set_args(self, args):
+        self.args_json = json.dumps(args)
+
     def should_check(self):
         """
         Determine if enough time has passed to check again.
@@ -259,18 +272,7 @@ class PeriodicalMeta(models.Model):
 
 
 class AssertionMeta(PeriodicalMeta):
-    args_json = models.TextField(
-        blank=True, default='{}',
-        help_text=(u'JSON encoded named arguments'))
-
-    def get_args(self):
-        if self.args_json:
-            return json.loads(self.args_json)
-        else:
-            return {}
-
-    def set_args(self, args):
-        self.args_json = json.dumps(args)
+    pass
 
 
 class EventMeta(PeriodicalMeta):
