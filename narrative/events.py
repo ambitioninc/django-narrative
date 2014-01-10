@@ -13,6 +13,10 @@ class Event(object):
     def __init__(self, event_meta):
         self.event_meta = event_meta
 
+    @property
+    def args(self):
+        return self.event_meta.get_args()
+
     @abc.abstractmethod
     def detect(self, *args, **kwargs):
         pass

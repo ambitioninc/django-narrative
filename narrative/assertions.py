@@ -26,6 +26,10 @@ class Assertion(object):
         self.assertion_meta = assertion_meta
         self.current_issue = None
 
+    @property
+    def args(self):
+        return self.assertion_meta.get_args()
+
     @abc.abstractmethod
     def check(self):
         pass
