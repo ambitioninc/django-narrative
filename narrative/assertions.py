@@ -175,6 +175,7 @@ class Assertion(object):
 
         if not valid:
             self.executor.do_defer_to_admins(
+                'Invalid assertion detected',
                 'Assertion: {0}, Invalid step: {0}'.format(
                     self.assertion_meta.display_name, invalid_step))
         return valid
