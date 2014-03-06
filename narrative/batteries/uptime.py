@@ -69,7 +69,7 @@ def detect_temporal_clusters(time_list):
         clusters = [[time_list[0]]]
 
         for idx in range(1, len(time_list)):
-            if interval_list[idx-1] > new_cluster_threshold:
+            if interval_list[idx - 1] > new_cluster_threshold:
                 # The interval past is too much; start a new cluster
                 clusters.append([time_list[idx]])
             else:
