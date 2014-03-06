@@ -61,7 +61,9 @@ def detect_temporal_clusters(time_list):
 
     Note: assumes that time_list is sorted in ascending order.
     """
-    if len(time_list) > 0:
+    time_list_len = len(time_list)
+
+    if time_list_len > 1:
         interval_list, new_cluster_threshold = compute_interval_list(time_list)
 
         clusters = [[time_list[0]]]
@@ -76,6 +78,8 @@ def detect_temporal_clusters(time_list):
                 clusters[-1].append(time_list[idx])
 
         return clusters, new_cluster_threshold
+    elif time_list_len == 1:
+        return [time_list], 0
     return [], 0
 
 

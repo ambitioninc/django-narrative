@@ -35,6 +35,17 @@ class Test_detect_temporal_clusters(unittest.TestCase):
             [[1, 2, 3], [14, 15, 16, 17, 18], [45, 46, 47, 48, 49, 50]],
             'There should be three clusters')
 
+    def test_1_element(self):
+        """
+        Verify that we properly handle the case where there is only 1 element.
+        """
+        time_list = [1]
+
+        self.assertEqual(
+            detect_temporal_clusters(time_list)[0],
+            [time_list],
+            'There should be one cluster')
+
 
 class Test_get_uptime_events(unittest.TestCase):
     def test_up_down_history(self):
