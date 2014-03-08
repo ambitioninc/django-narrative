@@ -13,7 +13,7 @@ class UptimeEventTypes:
 heartbeat_details = {
     'origin': 'external_heartbeat',
     'datum_name': 'beat',
-    'ttl': settings.NARRATIVE_HEARBEAT_TTL,
+    'ttl': getattr(settings, 'NARRATIVE_HEARBEAT_TTL', None),
 }
 
 
