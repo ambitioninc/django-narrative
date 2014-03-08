@@ -232,6 +232,12 @@ class PeriodicalMeta(models.Model):
         blank=True, default='{}',
         help_text=(u'JSON encoded named arguments'))
 
+    def __init__(self, *args, **kwargs):
+        pm_args = kwargs.pop('args', {})
+        kwargs['args_json'] = json.dumps(pm_args)
+
+        super(PeriodicalMeta, self).__init__(*args, **kwargs)
+
     def get_args(self):
         if self.args_json:
             return json.loads(self.args_json)
