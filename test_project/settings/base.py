@@ -1,12 +1,10 @@
 # Django settings for test_project project.
 
-DEBUG = True
-TEMPLATE_DEBUG = DEBUG
+TEMPLATE_DEBUG = vars().get('DEBUG', False)
+SOUTH_TESTS_MIGRATE = False
 
 # Use the nose tests runner
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
-# Disable south in testing
-SOUTH_TESTS_MIGRATE = False
 
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),

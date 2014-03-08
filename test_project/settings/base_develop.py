@@ -1,3 +1,5 @@
 import os
 
+DEBUG = True
+
 execfile(os.path.join(os.path.dirname(__file__), 'base.py'))
