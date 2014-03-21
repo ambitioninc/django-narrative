@@ -424,6 +424,10 @@ class Issue(models.Model):
             lambda isr: isr.action_type != ResolutionStepActionType.PASS,
             self.resolutionstep_set.order_by('created'))
 
+    @property
+    def age(self):
+        return datetime.datetime.utcnow() - self.created_timestamp
+
 
 class ResolutionStep(models.Model):
     """
