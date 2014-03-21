@@ -428,6 +428,10 @@ class Issue(models.Model):
     def age(self):
         return datetime.datetime.utcnow() - self.created_timestamp
 
+    @property
+    def status_name(self):
+        return IssueStatusType.id_to_name(self.status)
+
 
 class ResolutionStep(models.Model):
     """
