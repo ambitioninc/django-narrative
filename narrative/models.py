@@ -2,11 +2,11 @@ import datetime
 import json
 import uuid
 
-from pytz import utc as utc_tz
-
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.db import models
+from manager_utils import ManagerUtilsManager
+from pytz import utc as utc_tz
 
 
 def find_tuple(tuple_list, key, which):
@@ -231,6 +231,8 @@ class PeriodicalMeta(models.Model):
     args_json = models.TextField(
         blank=True, default='{}',
         help_text=(u'JSON encoded named arguments'))
+
+    objects = ManagerUtilsManager()
 
     def __init__(self, *args, **kwargs):
         pm_args = kwargs.pop('args', {})
