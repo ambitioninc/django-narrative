@@ -475,6 +475,14 @@ class ResolutionStep(models.Model):
         return separator.join(explanation)
 
 
+class ModelIssueManager(models.Manager):
+    @property
+    def current_issues(self):
+        resolved_list = [IssueStatusType.RESOLVED, IssueStatusType.WONT_FIX]
+
+        return self.exclude(status__in=resolved_list)
+
+
 class ModelIssue(Issue):
     """
     Model assertions may find issues with particular models.
@@ -484,4 +492,4 @@ class ModelIssue(Issue):
     model_id = models.PositiveIntegerField()
     model = generic.GenericForeignKey('model_type', 'model_id')
 
-    objects = IssueManager()
+    objects = ModelIssueManager()
