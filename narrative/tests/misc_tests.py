@@ -1,6 +1,43 @@
+import json
+
 from django.test import TestCase
 
 from ..models import AssertionMeta, Solution, Issue, ResolutionStep, ResolutionStepActionType, IssueStatusType
+
+
+class AssertionMetaTests(TestCase):
+    def test_args_json(self):
+        """
+        Test the args_json argument when creating a PeriodicalMeta.
+        """
+        args = {
+            'foo': 'bar',
+        }
+        am = AssertionMeta.objects.create(args_json=json.dumps(args))
+        self.assertEqual(json.dumps(args), am.args_json)
+
+    def test_args(self):
+        """
+        Test the args argument when creating a PeriodicalMeta.
+        """
+        args = {
+            'foo': 'bar',
+        }
+        am = AssertionMeta.objects.create(args=args)
+        self.assertEqual(json.dumps(args), am.args_json)
+
+    def test_args_and_args_json(self):
+        """
+        Verify that the args argument overrides the args_json argument if both are provided.
+        """
+        args = {
+            'foo': 'bar',
+        }
+        args_2 = {
+            'foo': 'baz',
+        }
+        am = AssertionMeta.objects.create(args_json=json.dumps(args), args=args_2)
+        self.assertEqual(json.dumps(args_2), am.args_json)
 
 
 class IssueTests(TestCase):
@@ -20,7 +57,7 @@ class IssueTests(TestCase):
             ('notify_client_it', {
                 'subject': 'foo',
                 'message': 'bar',
-                }),
+            }),
             ('do_email', {})
         ])
         test_solution_1.save()
@@ -30,7 +67,7 @@ class IssueTests(TestCase):
             ('notify_client_it', {
                 'subject': 'foo_2',
                 'message': 'bar_2',
-                }),
+            }),
             ('do_email', {})
         ])
         test_solution_2.save()
@@ -67,7 +104,7 @@ class IssueTests(TestCase):
             ('notify_client_it', {
                 'subject': 'foo',
                 'message': 'bar',
-                }),
+            }),
             ('do_email', {})
         ])
         test_solution_1.save()
@@ -77,7 +114,7 @@ class IssueTests(TestCase):
             ('notify_client_it', {
                 'subject': 'foo_2',
                 'message': 'bar_2',
-                }),
+            }),
             ('do_email', {})
         ])
         test_solution_2.save()

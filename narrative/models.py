@@ -235,8 +235,8 @@ class PeriodicalMeta(models.Model):
     objects = ManagerUtilsManager()
 
     def __init__(self, *args, **kwargs):
-        pm_args = kwargs.pop('args', {})
-        kwargs['args_json'] = json.dumps(pm_args)
+        if 'args' in kwargs:
+            kwargs['args_json'] = json.dumps(kwargs.pop('args'))
 
         super(PeriodicalMeta, self).__init__(*args, **kwargs)
 
