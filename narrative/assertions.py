@@ -266,10 +266,14 @@ class ModelAssertion(Assertion):
         the base Assertion class needs to be ran, but for a particular
         record.  So that's exactly what we do.
         """
+        results = []
+
         for record in self.queryset:
             # For each record
             args_copy = copy.copy(args)
             kwargs_copy = copy.copy(kwargs)
             kwargs_copy['record'] = record
 
-            super(ModelAssertion, self).check_and_diagnose(*args_copy, **kwargs_copy)
+            results.append(super(ModelAssertion, self).check_and_diagnose(*args_copy, **kwargs_copy))
+
+        return all(results)

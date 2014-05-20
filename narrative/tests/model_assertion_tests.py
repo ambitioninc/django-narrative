@@ -67,7 +67,7 @@ class ModelAssertionTests(TestCase):
         self.failing_models = [self.mock_models[idx] for idx in range(0, len(self.mock_models), 2)]
 
         # Call check
-        self.assertion.check_and_diagnose()
+        self.assertFalse(self.assertion.check_and_diagnose())
 
         # Verify that the records who fail are passed into diagnose
         self.assertEqual(
@@ -107,7 +107,7 @@ class ModelAssertionTests(TestCase):
         self.previously_failing_models = self.failing_models
         self.failing_models = []
 
-        self.assertion.check_and_diagnose()
+        self.assertTrue(self.assertion.check_and_diagnose())
 
         model_issue_list = ModelIssue.objects.all()
 
@@ -136,7 +136,7 @@ class ModelAssertionTests(TestCase):
             status=IssueStatusType.WONT_FIX)
 
         # Call check
-        self.assertion.check_and_diagnose()
+        self.assertFalse(self.assertion.check_and_diagnose())
 
         # Verify that the records who fail (but are not marked as WONT_FIX) are passed into diagnose
         self.assertEqual(
