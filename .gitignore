@@ -6,3 +6,6 @@ local_settings.py
 .idea/*
 
 .coverage
+build/
+dist/
+*.egg-info/
