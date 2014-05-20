@@ -90,7 +90,7 @@ class Assertion(object):
             current_issue.status = IssueStatusType.SOLUTION_APPLIED
             current_issue.save()
 
-    def post_recovery_cleanup(self):
+    def post_recovery_cleanup(self, *args, **kwargs):
         """
         Perform any cleanup actions needed after
         this assertion begins passing again.
