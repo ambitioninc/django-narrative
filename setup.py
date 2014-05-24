@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='django-narrative',
-    version='0.5.7.8',
+    version='0.5.7.9',
     packages=[
         'narrative',
         'narrative.batteries',
