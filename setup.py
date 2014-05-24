@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name='narrative',
+    name='django-narrative',
     version='0.5.7.8',
     packages=[
         'narrative',
