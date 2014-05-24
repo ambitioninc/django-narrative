@@ -14,8 +14,8 @@ setup(
     description='Django narrative',
     install_requires=[
         'django>=1.4',
-        'django-manager-utils==0.3.6',
-        'django-tastypie==0.11.0',
-        'pytz==2012h',
+        'django-manager-utils>=0.3.6',
+        'django-tastypie>=0.11.0',
+        'pytz>=2012h',
     ]
 )
