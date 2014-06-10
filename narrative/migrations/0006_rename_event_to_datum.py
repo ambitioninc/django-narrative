@@ -8,16 +8,6 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
-        # Create a Datum record for every currently extant Event record
-        data = []
-        for evt in orm['narrative.Event'].objects.all():
-            datum = orm['narrative.Datum'](
-                origin=evt.origin, datum_name=evt.event_name, timestamp=evt.timestamp, datum_note_json=evt.event_details_json)
-            data.append(datum)
-        orm['narrative.Datum'].objects.bulk_create(data)
-
-        # Clear out the old Events
-        orm['narrative.Event'].objects.all().delete()
 
     def backwards(self, orm):
         "Write your backwards methods here."
