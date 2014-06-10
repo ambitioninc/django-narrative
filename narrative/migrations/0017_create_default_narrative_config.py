@@ -8,11 +8,9 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
-        orm['narrative.NarrativeConfig'].objects.create()
 
     def backwards(self, orm):
         "Write your backwards methods here."
-        orm['narrative.NarrativeConfig'].objects.delete()
 
     models = {
         u'contenttypes.contenttype': {
