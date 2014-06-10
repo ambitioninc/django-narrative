@@ -8,10 +8,6 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
-        # Note: Remember to use orm['appname.ModelName'] rather than "from appname.models..."
-        for assertion_meta in orm['narrative.AssertionMeta'].objects.all():
-            assertion_meta.class_load_path = assertion_meta.assertion_load_path
-            assertion_meta.save()
 
     def backwards(self, orm):
         "Write your backwards methods here."
