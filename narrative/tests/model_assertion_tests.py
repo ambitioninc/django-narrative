@@ -103,7 +103,7 @@ class ModelAssertionTests(TestCase):
             set([self.assertion_meta]),
             'All of the model issues should reference the test asserrion meta')
 
-        ### Now, fake all models passing and verify the system recovers appropriately ###
+        # Now, fake all models passing and verify the system recovers appropriately ---
         self.previously_failing_models = self.failing_models
         self.failing_models = []
 
