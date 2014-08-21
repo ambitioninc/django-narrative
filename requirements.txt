@@ -6,7 +6,7 @@ django-nose
 pep8
 psycopg2==2.4.5
 pyflakes
-pytz==2012h
+pytz==2013.9
 south==0.7.6
 Werkzeug==0.8.3
 
