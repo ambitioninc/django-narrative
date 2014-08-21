@@ -38,7 +38,7 @@ class Assertion(object):
     def executor(self):
         return Executor()
 
-    ### Diagnostic related methods ###
+    # Diagnostic related methods ---
     def diagnose(self, *args, **kwargs):
         """
         Run diagnostic cases and find all potential solutions.
@@ -166,7 +166,7 @@ class Assertion(object):
             callable(getattr(self, member_name))
         ]
 
-    ### Misc utilties for working with solutions ###
+    # Misc utilties for working with solutions ---
     def get_utc_now(self):
         return utc_tz.localize(datetime.datetime.utcnow())
 

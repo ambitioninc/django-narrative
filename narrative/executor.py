@@ -4,7 +4,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
 
-### misc utility methods ###
+# misc utility methods ---
 def blast_email(subject, message_txt, message_html, recipients):
     email = EmailMultiAlternatives(
         subject, message_txt, settings.NARRATIVE_REPLY_EMAIL_ADDRESS,
@@ -39,7 +39,7 @@ class Executor(object):
 
             getattr(self, self.get_action_handler(action))(**kwargs)
 
-    ### do_* methods for executing particular operations such as notifying individuals ###
+    # do_* methods for executing particular operations such as notifying individuals ---
     def do_defer_to_admins(self, subject, message, message_html=None):
         admin_group = Group.objects.get(name=settings.NARRATIVE_ADMIN_GROUP_NAME)
         admins = admin_group.user_set.all()
