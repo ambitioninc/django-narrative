@@ -132,7 +132,7 @@ class Datum(models.Model):
         super(Datum, self).__init__(*args, **kwargs)
 
     # When was the datum created
-    timestamp = models.DateTimeField(auto_now_add=True)
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
 
     expiration_time = models.DateTimeField(null=True, blank=True, default=None)
 
