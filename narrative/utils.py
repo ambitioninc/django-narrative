@@ -1,4 +1,4 @@
-from models import ResolutionStep, ResolutionStepActionType
+from .models import ResolutionStep, ResolutionStepActionType
 
 
 def make_pass(current_issue, **kwargs):

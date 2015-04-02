@@ -3,6 +3,7 @@ from datetime import timedelta
 import json
 
 from django.conf import settings
+import six
 
 from tastypie.resources import ModelResource
 from tastypie.authorization import Authorization
@@ -38,7 +39,7 @@ class DatumResource(ModelResource):
 
     def hydrate(self, bundle):
         # Convert log level from string to int
-        if type(bundle.data.get('log_level')) in [str, unicode]:
+        if type(bundle.data.get('log_level')) in [six.binary_type, six.string_types]:
             bundle.data['log_level'] = DatumLogLevel.status_by_name(bundle.data.get('log_level'))
 
         ttl = settings.DEFAULT_NARRATIVE_DATUM_TTL

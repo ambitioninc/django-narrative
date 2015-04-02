@@ -332,7 +332,7 @@ class Test_check_and_diagnose(TestCase):
         self.email_called = False
         self.deferred_kwargs = None
 
-        self.mock_utc_now = datetime.datetime(2013, 07, 06, 12, 0, 0)
+        self.mock_utc_now = datetime.datetime(2013, 7, 6, 12, 0, 0)
 
         # Values returned by stubbed methods
         self.check_return_value = False

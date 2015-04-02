@@ -1,4 +1,6 @@
 # Django settings for test_project project.
+import django
+import os
 
 TEMPLATE_DEBUG = vars().get('DEBUG', False)
 SOUTH_TESTS_MIGRATE = False
@@ -13,14 +15,32 @@ ADMINS = (
 MANAGERS = ADMINS
 
 # Add 'postgresql_psycopg2', 'mysql', 'sqlite3'
-DATABASES = {
-    'default': {
+test_db = os.environ.get('DB', None)
+db_config = {}
+if test_db is None:
+    db_config = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'narrative',
-        'USER': 'narrative',
-        'PASSWORD': 'narrative',
+        'NAME': 'ambition_dev',
+        'USER': 'ambition_dev',
+        'PASSWORD': 'ambition_dev',
         'HOST': 'localhost'
     }
+elif test_db == 'postgres':
+    db_config = {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'USER': 'postgres',
+        'NAME': 'narrative',
+    }
+elif test_db == 'sqlite':
+    db_config = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'django_kmatch',
+    }
+else:
+    raise RuntimeError('Unsupported test DB {0}'.format(test_db))
+
+DATABASES = {
+    'default': db_config
 }
 
 # Local time zone for this installation. Choices can be found here:
@@ -125,11 +145,10 @@ INSTALLED_APPS = (
     'narrative',
     'narrative.batteries',
     'django_nose',
-    'south',
     'test_project',
     'django_extensions',
     'tastypie',
-)
+) + (('south',) if django.VERSION[1] <= 6 else ())
 
 # A sample logging configuration. The only tangible logging
 # performed by this configuration is to send an email to

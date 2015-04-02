@@ -11,4 +11,4 @@ elif "CIRCLECI" in os.environ:
 
 file_name = 'base_{0}.py'.format(ENVIRONMENT_VARIABLE)
 file_path = os.path.join(SETTINGS_PATH, file_name)
-execfile(file_path)
+exec(compile(open(file_path).read(), file_path, 'exec'))
