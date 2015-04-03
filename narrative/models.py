@@ -7,10 +7,11 @@ from django.contrib.contenttypes import generic
 from django.db import models
 from manager_utils import ManagerUtilsManager
 from pytz import utc as utc_tz
+import six
 
 
 def find_tuple(tuple_list, key, which):
-    filtered_list = filter(lambda tple: tple[which] == key, tuple_list)
+    filtered_list = [tple for tple in tuple_list if tple[which] == key]
     return filtered_list[0] if len(filtered_list) else None
 
 
@@ -124,21 +125,13 @@ class DatumManager(models.Manager):
         return utc_tz.localize(datetime.datetime.utcnow())
 
 
+@six.python_2_unicode_compatible
 class Datum(models.Model):
-    def __init__(self, *args, **kwargs):
-        if 'ttl' in kwargs:
-            kwargs['expiration_time'] = self.get_utc_now() + kwargs.pop('ttl')
-
-        super(Datum, self).__init__(*args, **kwargs)
-
     # When was the datum created
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
-
     expiration_time = models.DateTimeField(null=True, blank=True, default=None)
-
     # Origin of this datum; ie, what piece of software created it
     origin = models.CharField(max_length=64)
-
     datum_name = models.CharField(max_length=64)
 
     # Additional information about the datum; this is very datum specific
@@ -146,6 +139,25 @@ class Datum(models.Model):
     # explicit accessor and mutator, is very ugly.  Really this is because
     # we are storing non-structured/sparse data in a relational format.
     datum_note_json = models.TextField(null=True, blank=True, default=None)
+
+    # An ID to tie particular datums together
+    thread_id = models.CharField(max_length=36, null=True, blank=True)
+
+    log_level = models.IntegerField(choices=DatumLogLevel.types, default=DatumLogLevel.INFO)
+
+    objects = DatumManager()
+
+    def __init__(self, *args, **kwargs):
+        if 'ttl' in kwargs:
+            kwargs['expiration_time'] = self.get_utc_now() + kwargs.pop('ttl')
+
+        super(Datum, self).__init__(*args, **kwargs)
+
+    def __str__(self):
+        note_snippet = self.datum_note_json[:50] if self.datum_note_json else ''
+        return 'origin:{0} datum_name:{1} note:{2}'.format(
+            self.origin, self.datum_name, note_snippet
+        )
 
     def get_note(self):
         if self.datum_note_json:
@@ -155,13 +167,6 @@ class Datum(models.Model):
 
     def set_note(self, note):
         self.datum_note_json = json.dumps(note)
-
-    # An ID to tie particular datums together
-    thread_id = models.CharField(max_length=36, null=True, blank=True)
-
-    log_level = models.IntegerField(choices=DatumLogLevel.types, default=DatumLogLevel.INFO)
-
-    objects = DatumManager()
 
     def get_utc_now(self):
         return utc_tz.localize(datetime.datetime.utcnow())
@@ -175,11 +180,6 @@ class Datum(models.Model):
             self.thread_id = str(uuid.uuid4())
 
         super(Datum, self).save(*args, **kwargs)
-
-    def __unicode__(self):
-        note_snippet = self.datum_note_json[:50] if self.datum_note_json else ''
-        return u'origin:{0} datum_name:{1} note:{2}'.format(
-            self.origin, self.datum_name, note_snippet)
 
 
 def log_datum(*args, **kwargs):
@@ -206,6 +206,7 @@ def log_datum(*args, **kwargs):
     return datum
 
 
+@six.python_2_unicode_compatible
 class PeriodicalMeta(models.Model):
     """
     Used for storing meta information about class that needs to
@@ -230,7 +231,7 @@ class PeriodicalMeta(models.Model):
 
     args_json = models.TextField(
         blank=True, default='{}',
-        help_text=(u'JSON encoded named arguments'))
+        help_text='JSON encoded named arguments')
 
     objects = ManagerUtilsManager()
 
@@ -275,8 +276,8 @@ class PeriodicalMeta(models.Model):
         except ImportError:
             return None
 
-    def __unicode__(self):
-        return u'{0}::{1}'.format(self.display_name, self.class_load_path)
+    def __str__(self):
+        return '{0}::{1}'.format(self.display_name, self.class_load_path)
 
 
 class AssertionMeta(PeriodicalMeta):
@@ -287,6 +288,7 @@ class EventMeta(PeriodicalMeta):
     pass
 
 
+@six.python_2_unicode_compatible
 class Solution(models.Model):
     def __init__(self, *args, **kwargs):
         plan = kwargs.pop('plan', [])
@@ -317,10 +319,6 @@ class Solution(models.Model):
 
     def set_plan(self, plan):
         self.plan_json = json.dumps(plan)
-
-    def __unicode__(self):
-        return u'Solution - Diagnostic case name: {0}, description: {1}'.format(
-            self.diagnostic_case_name, self.problem_description)
 
     def __str__(self):
         return 'Solution - Diagnostic case name: {0}, description: {1}'.format(
@@ -357,6 +355,7 @@ class IssueManager(models.Manager):
         return self.exclude(status__in=resolved_list)
 
 
+@six.python_2_unicode_compatible
 class Issue(models.Model):
     """
     Assertions can find problems in the system; these
@@ -372,10 +371,6 @@ class Issue(models.Model):
     resolved_timestamp = models.DateTimeField(null=True, blank=True)
 
     objects = IssueManager()
-
-    def __unicode__(self):
-        return u'Issue - {0} ({1})'.format(
-            self.failed_assertion.display_name, IssueStatusType.status_by_id(self.status))
 
     def __str__(self):
         return 'Issue - {0} ({1})'.format(
@@ -405,7 +400,7 @@ class Issue(models.Model):
         The match is in terms of matching operations; not neccesarily the arguments passed.
         """
         def get_step_operations(plan):
-            return set(map(lambda step: step[0], plan))
+            return set([step[0] for step in plan])
 
         target_steps = get_step_operations(plan)
 
@@ -422,9 +417,12 @@ class Issue(models.Model):
         """
         Return all steps that are not PASSes.
         """
-        return filter(
-            lambda isr: isr.action_type != ResolutionStepActionType.PASS,
-            self.resolutionstep_set.order_by('created'))
+        return [
+            isr
+            for isr
+            in self.resolutionstep_set.order_by('created')
+            if isr.action_type != ResolutionStepActionType.PASS
+        ]
 
     @property
     def age(self):
@@ -435,6 +433,7 @@ class Issue(models.Model):
         return IssueStatusType.id_to_name(self.status)
 
 
+@six.python_2_unicode_compatible
 class ResolutionStep(models.Model):
     """
     Track steps taken to resolve an issue.
@@ -449,10 +448,6 @@ class ResolutionStep(models.Model):
 
     # The reason this step was selected; just human readable documentation
     reason = models.CharField(max_length=64, default=None, null=True, blank=True)
-
-    def __unicode__(self):
-        return u'Action: {0}, Solution: {1}'.format(
-            ResolutionStepActionType.status_by_id(self.action_type), self.solution)
 
     def __str__(self):
         return 'Action: {0}, Solution: {1}'.format(

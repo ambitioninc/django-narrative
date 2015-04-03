@@ -3,12 +3,13 @@ import copy
 import datetime
 import json
 
+import six
+
 from narrative.models import Datum
 from narrative.executor import Executor
 
 
-class Event(object):
-    __metaclass__ = abc.ABCMeta
+class Event(six.with_metaclass(abc.ABCMeta, object)):
 
     def __init__(self, event_meta):
         self.event_meta = event_meta

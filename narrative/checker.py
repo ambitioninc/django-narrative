@@ -1,6 +1,6 @@
 import time
 
-from models import AssertionMeta, EventMeta
+from .models import AssertionMeta, EventMeta
 
 
 def check_enabled_assertions(verbose=False):
@@ -34,9 +34,9 @@ def process_periodicals(
     for periodical_meta in periodical_meta_list:
         if periodical_meta.should_check():
             if verbose:
-                print 'Checking {0} {1}...'.format(
+                print('Checking {0} {1}...'.format(
                     periodical_meta.__class__.__name__,
-                    periodical_meta.display_name)
+                    periodical_meta.display_name))
 
                 periodical_class = periodical_meta.load_class()
 
@@ -45,10 +45,10 @@ def process_periodicals(
                     success = getattr(periodical_obj, process_method_name)()
 
                     if verbose:
-                        print '     {0}'.format(true_copy if success else false_copy)
+                        print('     {0}'.format(true_copy if success else false_copy))
                 else:
-                    print '     Error loading class "{0}"'.format(
-                        periodical_meta.class_load_path)
+                    print('     Error loading class "{0}"'.format(
+                        periodical_meta.class_load_path))
 
             check_count += 1
 
@@ -57,6 +57,6 @@ def process_periodicals(
     duration = end_time - start_time
 
     if verbose:
-        print '-'*20
-        print 'Checked {0} object in {1} seconds ({2} minutes)'.format(
-            check_count, duration, duration/60.0)
+        print('-' * 20)
+        print('Checked {0} object in {1} seconds ({2} minutes)'.format(
+            check_count, duration, str(int(duration / 60))))

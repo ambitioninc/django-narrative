@@ -5,14 +5,14 @@ import sys
 import traceback
 
 from pytz import utc as utc_tz
-
 from django.template.loader import render_to_string
+import six
 
 from .models import Issue, ModelIssue, IssueStatusType, ResolutionStepActionType
 from .executor import Executor
 
 
-class Assertion(object):
+class Assertion(six.with_metaclass(abc.ABCMeta, object)):
     """
     The assertion class is used for making
     assertions about properties of the system.
@@ -20,8 +20,6 @@ class Assertion(object):
     to fix the problem by calling any provided
     diagnostic methods.
     """
-    __metaclass__ = abc.ABCMeta
-
     def __init__(self, assertion_meta):
         self.assertion_meta = assertion_meta
         self.current_issue = None
@@ -55,7 +53,7 @@ class Assertion(object):
         ]
 
         # Filter out any 'None' results
-        resolution_steps = filter(bool, resolution_steps)
+        resolution_steps = list(filter(bool, resolution_steps))
 
         if len(resolution_steps) == 0:
             # No solution found, notify the admins
@@ -200,12 +198,11 @@ class Assertion(object):
             solution.save()
 
 
-class ModelAssertion(Assertion):
+class ModelAssertion(six.with_metaclass(abc.ABCMeta, Assertion)):
     """
     ModelAssertion is a class for making assertions about
     a particular set of models.
     """
-    __metaclass__ = abc.ABCMeta
 
     def __init__(self, *args, **kwargs):
         super(ModelAssertion, self).__init__(*args, **kwargs)

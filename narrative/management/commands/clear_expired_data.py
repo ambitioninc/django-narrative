@@ -9,7 +9,7 @@ class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
         make_option(
             '--verbose', action='store_true', dest='verbose', default=False,
-            help='Determins if this command should in verbose mode'),)
+            help='Determines if this command should in verbose mode'),)
     help = (
         'Clear any expired events')
 
@@ -17,4 +17,4 @@ class Command(BaseCommand):
         cleared_events = Datum.objects.clear_expired()
 
         if options['verbose']:
-            print 'Cleared data: {0}'.format(cleared_events)
+            print('Cleared data: {0}'.format(cleared_events))

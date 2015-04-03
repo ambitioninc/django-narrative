@@ -1,7 +1,7 @@
 import datetime
 import unittest
 
-from uptime import detect_temporal_clusters, heartbeat_details, get_uptime_history, UptimeEventTypes
+from narrative.batteries.uptime import detect_temporal_clusters, heartbeat_details, get_uptime_history, UptimeEventTypes
 from narrative.models import Datum
 
 
@@ -26,7 +26,7 @@ def simulate_uptime(start_time, end_time, interval=None):
         evt.save()
 
 
-class Test_detect_temporal_clusters(unittest.TestCase):
+class TestDetectTemporalClusters(unittest.TestCase):
     def test_3_clusters(self):
         time_list = [1, 2, 3, 14, 15, 16, 17, 18, 45, 46, 47, 48, 49, 50]
 
@@ -47,7 +47,7 @@ class Test_detect_temporal_clusters(unittest.TestCase):
             'There should be one cluster')
 
 
-class Test_get_uptime_events(unittest.TestCase):
+class TestGetUptimeEvents(unittest.TestCase):
     def test_up_down_history(self):
         # Simulate 2 periods of downtime
         simulation_start_time = datetime.datetime(2013, 7, 15, 12, 0, 0)

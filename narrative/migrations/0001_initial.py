@@ -1,150 +1,143 @@
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
+from django.db import models, migrations
 import datetime
-from south.db import db
-from south.v2 import SchemaMigration
-from django.db import models
 
 
-class Migration(SchemaMigration):
+class Migration(migrations.Migration):
 
-    def forwards(self, orm):
-        # Adding model 'Event'
-        db.create_table('narrative_event', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('timestamp', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
-            ('origin', self.gf('django.db.models.fields.CharField')(max_length=64)),
-            ('event_name', self.gf('django.db.models.fields.CharField')(max_length=64)),
-            ('event_operand', self.gf('django.db.models.fields.CharField')(max_length=64, null=True, blank=True)),
-            ('event_operand_detail', self.gf('django.db.models.fields.CharField')(max_length=64, null=True, blank=True)),
-            ('status', self.gf('django.db.models.fields.IntegerField')(default=0)),
-            ('thread_id', self.gf('django.db.models.fields.CharField')(max_length=36, null=True, blank=True)),
-        ))
-        db.send_create_signal('narrative', ['Event'])
+    dependencies = [
+        ('contenttypes', '0001_initial'),
+    ]
 
-        # Adding model 'AssertionMeta'
-        db.create_table('narrative_assertionmeta', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('display_name', self.gf('django.db.models.fields.CharField')(unique=True, max_length=64)),
-            ('assertion_load_path', self.gf('django.db.models.fields.CharField')(unique=True, max_length=64)),
-            ('enabled', self.gf('django.db.models.fields.BooleanField')(default=False)),
-        ))
-        db.send_create_signal('narrative', ['AssertionMeta'])
-
-        # Adding model 'Solution'
-        db.create_table('narrative_solution', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('diagnostic_case_name', self.gf('django.db.models.fields.CharField')(max_length=64)),
-            ('problem_description', self.gf('django.db.models.fields.CharField')(max_length=128)),
-            ('plan_json', self.gf('django.db.models.fields.TextField')()),
-            ('enacted', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-        ))
-        db.send_create_signal('narrative', ['Solution'])
-
-        # Adding model 'Issue'
-        db.create_table('narrative_issue', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('failed_assertion', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['narrative.AssertionMeta'])),
-            ('status', self.gf('django.db.models.fields.IntegerField')(default=0)),
-            ('created_timestamp', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
-            ('resolved_timestamp', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-        ))
-        db.send_create_signal('narrative', ['Issue'])
-
-        # Adding model 'ResolutionStep'
-        db.create_table('narrative_resolutionstep', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('issue', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['narrative.Issue'])),
-            ('solution', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['narrative.Solution'], null=True, blank=True)),
-            ('action_type', self.gf('django.db.models.fields.IntegerField')(default=0)),
-            ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
-        ))
-        db.send_create_signal('narrative', ['ResolutionStep'])
-
-        # Adding model 'ModelIssue'
-        db.create_table('narrative_modelissue', (
-            ('issue_ptr', self.gf('django.db.models.fields.related.OneToOneField')(to=orm['narrative.Issue'], unique=True, primary_key=True)),
-            ('model_type', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['contenttypes.ContentType'])),
-            ('model_id', self.gf('django.db.models.fields.PositiveIntegerField')()),
-        ))
-        db.send_create_signal('narrative', ['ModelIssue'])
-
-
-    def backwards(self, orm):
-        # Deleting model 'Event'
-        db.delete_table('narrative_event')
-
-        # Deleting model 'AssertionMeta'
-        db.delete_table('narrative_assertionmeta')
-
-        # Deleting model 'Solution'
-        db.delete_table('narrative_solution')
-
-        # Deleting model 'Issue'
-        db.delete_table('narrative_issue')
-
-        # Deleting model 'ResolutionStep'
-        db.delete_table('narrative_resolutionstep')
-
-        # Deleting model 'ModelIssue'
-        db.delete_table('narrative_modelissue')
-
-
-    models = {
-        'contenttypes.contenttype': {
-            'Meta': {'ordering': "('name',)", 'unique_together': "(('app_label', 'model'),)", 'object_name': 'ContentType', 'db_table': "'django_content_type'"},
-            'app_label': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
-        },
-        'narrative.assertionmeta': {
-            'Meta': {'object_name': 'AssertionMeta'},
-            'assertion_load_path': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'}),
-            'display_name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'}),
-            'enabled': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})
-        },
-        'narrative.event': {
-            'Meta': {'object_name': 'Event'},
-            'event_name': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
-            'event_operand': ('django.db.models.fields.CharField', [], {'max_length': '64', 'null': 'True', 'blank': 'True'}),
-            'event_operand_detail': ('django.db.models.fields.CharField', [], {'max_length': '64', 'null': 'True', 'blank': 'True'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'origin': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
-            'status': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
-            'thread_id': ('django.db.models.fields.CharField', [], {'max_length': '36', 'null': 'True', 'blank': 'True'}),
-            'timestamp': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'})
-        },
-        'narrative.issue': {
-            'Meta': {'object_name': 'Issue'},
-            'created_timestamp': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'failed_assertion': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['narrative.AssertionMeta']"}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'resolved_timestamp': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'status': ('django.db.models.fields.IntegerField', [], {'default': '0'})
-        },
-        'narrative.modelissue': {
-            'Meta': {'object_name': 'ModelIssue', '_ormbases': ['narrative.Issue']},
-            'issue_ptr': ('django.db.models.fields.related.OneToOneField', [], {'to': "orm['narrative.Issue']", 'unique': 'True', 'primary_key': 'True'}),
-            'model_id': ('django.db.models.fields.PositiveIntegerField', [], {}),
-            'model_type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['contenttypes.ContentType']"})
-        },
-        'narrative.resolutionstep': {
-            'Meta': {'object_name': 'ResolutionStep'},
-            'action_type': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
-            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'issue': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['narrative.Issue']"}),
-            'solution': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['narrative.Solution']", 'null': 'True', 'blank': 'True'})
-        },
-        'narrative.solution': {
-            'Meta': {'object_name': 'Solution'},
-            'diagnostic_case_name': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
-            'enacted': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'plan_json': ('django.db.models.fields.TextField', [], {}),
-            'problem_description': ('django.db.models.fields.CharField', [], {'max_length': '128'})
-        }
-    }
-
-    complete_apps = ['narrative']
+    operations = [
+        migrations.CreateModel(
+            name='AssertionMeta',
+            fields=[
+                ('id', models.AutoField(primary_key=True, serialize=False, auto_created=True, verbose_name='ID')),
+                ('display_name', models.CharField(max_length=64)),
+                ('class_load_path', models.CharField(max_length=96, default='')),
+                ('enabled', models.BooleanField(default=False)),
+                ('check_interval_seconds', models.IntegerField(default=3600)),
+                ('last_check', models.DateTimeField(default=datetime.datetime(1970, 1, 1, 0, 0))),
+                ('args_json', models.TextField(blank=True, default='{}', help_text='JSON encoded named arguments')),
+            ],
+            options={
+                'abstract': False,
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='Datum',
+            fields=[
+                ('id', models.AutoField(primary_key=True, serialize=False, auto_created=True, verbose_name='ID')),
+                ('timestamp', models.DateTimeField(db_index=True, auto_now_add=True)),
+                ('expiration_time', models.DateTimeField(null=True, blank=True, default=None)),
+                ('origin', models.CharField(max_length=64)),
+                ('datum_name', models.CharField(max_length=64)),
+                ('datum_note_json', models.TextField(null=True, blank=True, default=None)),
+                ('thread_id', models.CharField(null=True, blank=True, max_length=36)),
+                ('log_level', models.IntegerField(choices=[(0, 'Trace'), (4, 'Error'), (3, 'Warn'), (2, 'Info'), (1, 'Debug')], default=2)),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='EventMeta',
+            fields=[
+                ('id', models.AutoField(primary_key=True, serialize=False, auto_created=True, verbose_name='ID')),
+                ('display_name', models.CharField(max_length=64)),
+                ('class_load_path', models.CharField(max_length=96, default='')),
+                ('enabled', models.BooleanField(default=False)),
+                ('check_interval_seconds', models.IntegerField(default=3600)),
+                ('last_check', models.DateTimeField(default=datetime.datetime(1970, 1, 1, 0, 0))),
+                ('args_json', models.TextField(blank=True, default='{}', help_text='JSON encoded named arguments')),
+            ],
+            options={
+                'abstract': False,
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='Issue',
+            fields=[
+                ('id', models.AutoField(primary_key=True, serialize=False, auto_created=True, verbose_name='ID')),
+                ('status', models.IntegerField(choices=[(0, 'Open'), (1, 'Solution Applied'), (2, 'Impasse'), (3, 'Resolved'), (4, 'Wont Fix')], default=0)),
+                ('created_timestamp', models.DateTimeField(auto_now_add=True)),
+                ('resolved_timestamp', models.DateTimeField(null=True, blank=True)),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='ModelIssue',
+            fields=[
+                ('issue_ptr', models.OneToOneField(serialize=False, primary_key=True, parent_link=True, to='narrative.Issue', auto_created=True)),
+                ('model_id', models.PositiveIntegerField()),
+                ('model_type', models.ForeignKey(to='contenttypes.ContentType')),
+            ],
+            options={
+            },
+            bases=('narrative.issue',),
+        ),
+        migrations.CreateModel(
+            name='NarrativeConfig',
+            fields=[
+                ('id', models.AutoField(primary_key=True, serialize=False, auto_created=True, verbose_name='ID')),
+                ('minimum_datum_log_level', models.IntegerField(choices=[(0, 'Trace'), (4, 'Error'), (3, 'Warn'), (2, 'Info'), (1, 'Debug')], default=2)),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='ResolutionStep',
+            fields=[
+                ('id', models.AutoField(primary_key=True, serialize=False, auto_created=True, verbose_name='ID')),
+                ('action_type', models.IntegerField(choices=[(0, 'Exec'), (1, 'Pass')], default=0)),
+                ('created', models.DateTimeField(auto_now_add=True)),
+                ('reason', models.CharField(null=True, max_length=64, blank=True, default=None)),
+                ('issue', models.ForeignKey(to='narrative.Issue')),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='Solution',
+            fields=[
+                ('id', models.AutoField(primary_key=True, serialize=False, auto_created=True, verbose_name='ID')),
+                ('diagnostic_case_name', models.CharField(max_length=64)),
+                ('problem_description', models.CharField(max_length=128)),
+                ('plan_json', models.TextField()),
+                ('enacted', models.DateTimeField(null=True, blank=True)),
+                ('error_traceback', models.TextField(null=True, blank=True)),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+        migrations.AddField(
+            model_name='resolutionstep',
+            name='solution',
+            field=models.ForeignKey(blank=True, null=True, to='narrative.Solution'),
+            preserve_default=True,
+        ),
+        migrations.AddField(
+            model_name='issue',
+            name='failed_assertion',
+            field=models.ForeignKey(to='narrative.AssertionMeta'),
+            preserve_default=True,
+        ),
+        migrations.AlterUniqueTogether(
+            name='eventmeta',
+            unique_together=set([('display_name', 'class_load_path')]),
+        ),
+        migrations.AlterUniqueTogether(
+            name='assertionmeta',
+            unique_together=set([('display_name', 'class_load_path')]),
+        ),
+    ]

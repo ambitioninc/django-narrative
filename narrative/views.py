@@ -2,6 +2,7 @@ import json
 from django.http import HttpResponseBadRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
+import six
 from tastypie.exceptions import ImmediateHttpResponse
 from narrative.api import DatumResource
 from narrative.models import NarrativeConfig, DatumLogLevel
@@ -33,8 +34,11 @@ class LogView(View):
         content_type = request.META.get('CONTENT_TYPE', 'application/json')
         if content_type == 'application/json':
             try:
+                body = request.body
+                if six.PY3:  # pragma: no cover
+                    body = request.body.decode('utf8')
                 # Decode the post so we can check the log level
-                post_content = json.loads(request.body)
+                post_content = json.loads(body)
             except Exception:
                 return HttpResponseBadRequest('Invalid json')
 
@@ -42,7 +46,7 @@ class LogView(View):
             if type(post_content) is dict:
                 log_level = post_content.get('log_level', minimum_log_level)
 
-            if type(log_level) in [str, unicode]:
+            if type(log_level) in [six.string_types, six.text_type]:
                 log_level = DatumLogLevel.status_by_name(log_level)
         else:
             return HttpResponseBadRequest('Format not supported')
@@ -52,10 +56,10 @@ class LogView(View):
             # Log level isn't high enough so ignore it
             return HttpResponse(json.dumps({
                 'success': True
-            }), mimetype='application/json')
+            }), content_type='application/json')
         try:
             # Send the data to the api to be logged
             response = DatumResource().dispatch_list(request)
             return response
-        except ImmediateHttpResponse, e:
+        except ImmediateHttpResponse as e:
             return e.response
