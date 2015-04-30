@@ -1,3 +1,15 @@
+# Status #
+
+`django-narrative` is now obsolete and no longer maintained.
+
+The functionality has been updated and split into two independent projects:
+
+`django-issue` - a cleaner (but still imperfect) implementation of the `Issue` and `Assertion` ideas developed in django-narrative. Accessible here: https://github.com/ambitioninc/django-issue
+
+`django-datum` - contains the idea of `Datum` records; basically application logs in your database you can query.  Accessible here: https://github.com/ambitioninc/django-datum
+
+Happy hacking!
+
 # django-narrative
 
 Narrative is an a Django app that allows for monitoring of your application's 
